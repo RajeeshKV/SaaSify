@@ -70,7 +70,9 @@ builder.Services.AddScoped<GetProjectByIdQueryHandler>();
 builder.Services.AddScoped<GetAllProjectsQueryHandler>();
 builder.Services.AddScoped<CreateProjectCommandHandler>();
 builder.Services.AddScoped<UpdateProjectCommandHandler>();
+builder.Services.AddScoped<UpdateManyProjectCommandHandler>();
 builder.Services.AddScoped<DeleteProjectCommandHandler>();
+builder.Services.AddScoped<DeleteManyProjectCommandHandler>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 var app = builder.Build();

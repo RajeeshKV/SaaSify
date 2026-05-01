@@ -13,24 +13,26 @@ public class TenantMiddleware
 
     public async Task Invoke(HttpContext context, ITenantContext tenantContext)
     {
-        if (HttpMethods.IsOptions(context.Request.Method) || ShouldSkipTenantResolution(context.Request.Path))
+        if (ShouldSkipTenantResolution(context.Request.Path) ||
+            HttpMethods.IsOptions(context.Request.Method))
         {
             await _next(context);
             return;
         }
 
-        // Get tenant from header first
-        var tenantHeader = context.Request.Headers["X-Tenant-Id"].FirstOrDefault();
         int tenantId = 0;
+
+        var tenantHeader = context.Request.Headers["X-Tenant-Id"].FirstOrDefault();
 
         if (!string.IsNullOrEmpty(tenantHeader) && int.TryParse(tenantHeader, out var headerId))
         {
             tenantId = headerId;
         }
-        else
+
+        if (tenantId == 0 && context.User?.Identity?.IsAuthenticated == true)
         {
-            // Try to get from JWT claims
-            var tenantClaim = context.User?.FindFirst("TenantId");
+            var tenantClaim = context.User.FindFirst("TenantId");
+
             if (tenantClaim != null && int.TryParse(tenantClaim.Value, out var claimId))
             {
                 tenantId = claimId;
@@ -39,14 +41,16 @@ public class TenantMiddleware
 
         if (tenantId == 0)
         {
-            _logger.LogWarning("TenantId is required");
+            _logger.LogWarning("TenantId is required for {Path}", context.Request.Path);
+
             context.Response.StatusCode = 400;
             await context.Response.WriteAsJsonAsync(new { message = "TenantId is required" });
             return;
         }
 
         tenantContext.SetTenantId(tenantId);
-        _logger.LogInformation("Tenant {TenantId} set for request {Path}", tenantId, context.Request.Path);
+
+        _logger.LogInformation("Tenant {TenantId} set for {Path}", tenantId, context.Request.Path);
 
         await _next(context);
     }

@@ -4,9 +4,11 @@
 **/bin
 **/obj
 **/TestResults
+Tests
 **/*.user
 **/*.suo
 **/*.cache
 **/*.log
+build-diagnostic.log
 Dockerfile
 README.md

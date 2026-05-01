@@ -95,14 +95,18 @@ public class AuthService : IAuthService
         var refreshTokenHash = RefreshTokenService.HashRefreshToken(refreshToken);
 
         var storedToken = await _context.RefreshTokens
-            .Include(rt => rt.User)
-            .FirstOrDefaultAsync(rt => rt.TokenHash == refreshTokenHash);
+                        .IgnoreQueryFilters()
+                        .Include(rt => rt.User)
+                        .FirstOrDefaultAsync(rt => rt.TokenHash == refreshTokenHash);
 
         if (storedToken == null)
             return;
 
-        storedToken.RevokedAt ??= DateTime.UtcNow;
-        storedToken.User.TokenVersion++;
+        if (storedToken.RevokedAt == null)
+        {
+            storedToken.RevokedAt = DateTime.UtcNow;
+            storedToken.User.TokenVersion++;
+        }
 
         await _context.SaveChangesAsync();
     }

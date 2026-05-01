@@ -10,20 +10,26 @@ public class ProjectsController : ControllerBase
     private readonly GetAllProjectsQueryHandler _getAllProjectsHandler;
     private readonly CreateProjectCommandHandler _createProjectHandler;
     private readonly UpdateProjectCommandHandler _updateProjectHandler;
+    private readonly UpdateManyProjectCommandHandler _updateManyProjectHandler;
     private readonly DeleteProjectCommandHandler _deleteProjectHandler;
+    private readonly DeleteManyProjectCommandHandler _deleteManyProjectHandler;
 
     public ProjectsController(
         GetProjectByIdQueryHandler getProjectByIdHandler,
         GetAllProjectsQueryHandler getAllProjectsHandler,
         CreateProjectCommandHandler createProjectHandler,
         UpdateProjectCommandHandler updateProjectHandler,
-        DeleteProjectCommandHandler deleteProjectHandler)
+        UpdateManyProjectCommandHandler updateManyProjectHandler,
+        DeleteProjectCommandHandler deleteProjectHandler,
+        DeleteManyProjectCommandHandler deleteManyProjectHandler)
     {
         _getProjectByIdHandler = getProjectByIdHandler;
         _getAllProjectsHandler = getAllProjectsHandler;
         _createProjectHandler = createProjectHandler;
         _updateProjectHandler = updateProjectHandler;
+        _updateManyProjectHandler = updateManyProjectHandler;
         _deleteProjectHandler = deleteProjectHandler;
+        _deleteManyProjectHandler = deleteManyProjectHandler;
     }
 
     [HttpGet("{id}")]
@@ -59,11 +65,25 @@ public class ProjectsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPut("many")]
+    public async Task<IActionResult> UpdateMany([FromBody] List<UpdateManyProjectCommand> command)
+    {
+        var result = await _updateManyProjectHandler.Handle(command);
+        return Ok(result);
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
         var command = new DeleteProjectCommand { Id = id };
         await _deleteProjectHandler.Handle(command);
+        return NoContent();
+    }
+
+    [HttpDelete("many")]
+    public async Task<IActionResult> DeleteMany([FromBody] List<DeleteManyProjectCommand> command)
+    {
+        await _deleteManyProjectHandler.Handle(command);
         return NoContent();
     }
 }

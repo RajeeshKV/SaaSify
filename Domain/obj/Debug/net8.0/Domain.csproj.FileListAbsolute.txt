@@ -1,0 +1,11 @@
+C:\Personal\MultiTenantSaaS\Domain\bin\Debug\net8.0\Domain.deps.json
+C:\Personal\MultiTenantSaaS\Domain\bin\Debug\net8.0\Domain.dll
+C:\Personal\MultiTenantSaaS\Domain\bin\Debug\net8.0\Domain.pdb
+C:\Personal\MultiTenantSaaS\Domain\obj\Debug\net8.0\Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Personal\MultiTenantSaaS\Domain\obj\Debug\net8.0\Domain.AssemblyInfoInputs.cache
+C:\Personal\MultiTenantSaaS\Domain\obj\Debug\net8.0\Domain.AssemblyInfo.cs
+C:\Personal\MultiTenantSaaS\Domain\obj\Debug\net8.0\Domain.csproj.CoreCompileInputs.cache
+C:\Personal\MultiTenantSaaS\Domain\obj\Debug\net8.0\Domain.dll
+C:\Personal\MultiTenantSaaS\Domain\obj\Debug\net8.0\refint\Domain.dll
+C:\Personal\MultiTenantSaaS\Domain\obj\Debug\net8.0\Domain.pdb
+C:\Personal\MultiTenantSaaS\Domain\obj\Debug\net8.0\ref\Domain.dll

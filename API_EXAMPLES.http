@@ -1,0 +1,87 @@
+### Multi-Tenant SaaS API Examples
+### Base URL: https://localhost:5001
+
+@baseUrl = https://localhost:5001
+@tenantId = 1
+@token = your_jwt_token_here
+
+### Health Check
+
+GET {{baseUrl}}/api/health
+
+### Authentication
+
+### Login and get JWT token
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "tenantId": 1
+}
+
+### Projects
+
+### Get all projects for current tenant
+GET {{baseUrl}}/api/projects
+Authorization: Bearer {{token}}
+X-Tenant-Id: {{tenantId}}
+
+### Get specific project by ID
+GET {{baseUrl}}/api/projects/1
+Authorization: Bearer {{token}}
+X-Tenant-Id: {{tenantId}}
+
+### Create new project
+POST {{baseUrl}}/api/projects
+Authorization: Bearer {{token}}
+X-Tenant-Id: {{tenantId}}
+Content-Type: application/json
+
+{
+  "name": "New Project Name"
+}
+
+### Create another project
+POST {{baseUrl}}/api/projects
+Authorization: Bearer {{token}}
+X-Tenant-Id: {{tenantId}}
+Content-Type: application/json
+
+{
+  "name": "Another Project"
+}
+
+### Update project
+PUT {{baseUrl}}/api/projects/1
+Authorization: Bearer {{token}}
+X-Tenant-Id: {{tenantId}}
+Content-Type: application/json
+
+{
+  "id": 1,
+  "name": "Updated Project Name"
+}
+
+### Delete project
+DELETE {{baseUrl}}/api/projects/1
+Authorization: Bearer {{token}}
+X-Tenant-Id: {{tenantId}}
+
+### Test with different tenant (will get 400 if different tenant)
+GET {{baseUrl}}/api/projects
+Authorization: Bearer {{token}}
+X-Tenant-Id: 2
+
+### Request with correlation ID
+GET {{baseUrl}}/api/projects
+Authorization: Bearer {{token}}
+X-Tenant-Id: {{tenantId}}
+X-Correlation-Id: my-custom-correlation-id
+
+### Notes:
+### 1. Replace {{token}} with actual JWT token from login endpoint
+### 2. Replace {{tenantId}} with your tenant ID (default: 1)
+### 3. All endpoints require X-Tenant-Id header or TenantId in JWT
+### 4. Responses include X-Correlation-Id header for tracing

@@ -47,11 +47,15 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddControllers();
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", builder =>
+    options.AddPolicy("ClientApp", corsBuilder =>
     {
-        builder.AllowAnyOrigin()
-               .AllowAnyMethod()
-               .AllowAnyHeader();
+        corsBuilder
+            .WithOrigins(
+                "https://saasify.rajeesh.online",
+                "http://localhost:3000",
+                "http://localhost:5173")
+            .AllowAnyMethod()
+            .AllowAnyHeader();
     });
 });
 
@@ -81,7 +85,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
-app.UseCors("AllowAll");
+app.UseCors("ClientApp");
 app.UseAuthentication();
 app.UseMiddleware<TenantMiddleware>();
 app.UseAuthorization();

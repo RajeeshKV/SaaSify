@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -64,7 +65,11 @@ public static class AuthenticationExtensions
                         return;
                     }
 
-                    var user = await db.Users.FindAsync(userId);
+                    var user = await db.Users
+                                .IgnoreQueryFilters()
+                                .Where(x => x.Id == userId)
+                                .Select(x => new { x.TokenVersion })
+                                .FirstOrDefaultAsync();
 
                     Console.WriteLine($"DB: {user?.TokenVersion}, Token: {tokenVersion}");
 

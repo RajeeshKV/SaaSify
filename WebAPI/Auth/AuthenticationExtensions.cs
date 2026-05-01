@@ -45,7 +45,7 @@ public static class AuthenticationExtensions
                         .GetRequiredService<ApplicationDbContext>();
 
                     var userIdClaim = context.Principal.FindFirst("sub")?.Value;
-                    var tokenVersionClaim = context.Principal.FindFirst("tokenVersion")?.Value;
+                    var tokenVersionClaim = context.Principal.FindFirst("TokenVersion")?.Value;
 
                     if (string.IsNullOrEmpty(userIdClaim) || string.IsNullOrEmpty(tokenVersionClaim))
                     {

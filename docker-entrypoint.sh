@@ -45,12 +45,12 @@ dotnet /app/WebAPI.dll &
 app_pid=$!
 
 if [ -n "${migration_pid}" ]; then
-  (
-    if ! wait "${migration_pid}"; then
-      echo "Migration process failed; stopping WebAPI."
-      kill "${app_pid}"
-    fi
-  ) &
+  if ! wait "${migration_pid}"; then
+    echo "Migration process failed; stopping WebAPI."
+    kill "${app_pid}"
+    wait "${app_pid}" || true
+    exit 1
+  fi
 fi
 
 wait "${app_pid}"

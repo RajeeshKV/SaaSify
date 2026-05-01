@@ -13,6 +13,12 @@ public class TenantMiddleware
 
     public async Task Invoke(HttpContext context, ITenantContext tenantContext)
     {
+        if (HttpMethods.IsOptions(context.Request.Method) || ShouldSkipTenantResolution(context.Request.Path))
+        {
+            await _next(context);
+            return;
+        }
+
         // Get tenant from header first
         var tenantHeader = context.Request.Headers["X-Tenant-Id"].FirstOrDefault();
         int tenantId = 0;
@@ -43,5 +49,12 @@ public class TenantMiddleware
         _logger.LogInformation("Tenant {TenantId} set for request {Path}", tenantId, context.Request.Path);
 
         await _next(context);
+    }
+
+    private static bool ShouldSkipTenantResolution(PathString path)
+    {
+        return path.StartsWithSegments("/api/auth")
+            || path.StartsWithSegments("/api/health")
+            || path.StartsWithSegments("/swagger");
     }
 }

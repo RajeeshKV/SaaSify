@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Moq;
 using Xunit;
@@ -192,71 +193,208 @@ public class ProjectsControllerTests
 public class AuthControllerTests
 {
     [Fact]
-    public void Login_WithValidRequest_ReturnsOkWithToken()
+    public async Task Login_WithValidRequest_ReturnsOkWithToken()
     {
         // Arrange
-        var mockConfiguration = new Mock<IConfiguration>();
-        var mockJwtSettings = new Mock<IConfigurationSection>();
+        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var user = context.Users.IgnoreQueryFilters().Single();
+        user.Email = "user@example.com";
+        user.PasswordHash = PasswordHasher.HashPassword("password123");
+        await context.SaveChangesAsync();
 
-        mockConfiguration
-            .Setup(c => c.GetSection("JwtSettings"))
-            .Returns(mockJwtSettings.Object);
-
-        mockJwtSettings
-            .Setup(s => s["SecretKey"])
-            .Returns("test-secret-key-that-is-at-least-32-characters-long");
-
-        mockJwtSettings
-            .Setup(s => s["Issuer"])
-            .Returns("TestIssuer");
-
-        mockJwtSettings
-            .Setup(s => s["Audience"])
-            .Returns("TestAudience");
-
-        mockJwtSettings
-            .Setup(s => s["ExpiryMinutes"])
-            .Returns("60");
-
-        var controller = new AuthController(mockConfiguration.Object);
-        var request = new LoginRequest { Email = "user@example.com", Password = "password123", TenantId = 1 };
+        var controller = CreateAuthController(context);
+        var request = new LoginRequest { Email = "user@example.com", Password = "password123", TenantId = user.TenantId };
 
         // Act
-        var result = controller.Login(request);
+        var result = await controller.Login(request);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();
         var okResult = (result as OkObjectResult)!;
-        okResult.Value.Should().NotBeNull();
+        okResult.Value.Should().BeOfType<AuthResponse>();
+        var response = (AuthResponse)okResult.Value!;
+        response.Token.Should().NotBeNullOrWhiteSpace();
+        response.RefreshToken.Should().NotBeNullOrWhiteSpace();
+        response.TenantId.Should().Be(user.TenantId);
+        context.RefreshTokens.IgnoreQueryFilters().Should().ContainSingle(rt => rt.UserId == user.Id);
     }
 
     [Fact]
-    public void Login_WithEmptyEmail_ReturnsBadRequest()
+    public async Task Login_WithInvalidPassword_ReturnsUnauthorized()
     {
         // Arrange
-        var mockConfiguration = new Mock<IConfiguration>();
-        var controller = new AuthController(mockConfiguration.Object);
+        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var user = context.Users.IgnoreQueryFilters().Single();
+        user.Email = "user@example.com";
+        user.PasswordHash = PasswordHasher.HashPassword("password123");
+        await context.SaveChangesAsync();
+
+        var controller = CreateAuthController(context);
+        var request = new LoginRequest { Email = "user@example.com", Password = "wrong", TenantId = user.TenantId };
+
+        // Act
+        var result = await controller.Login(request);
+
+        // Assert
+        result.Should().BeOfType<UnauthorizedObjectResult>();
+    }
+
+    [Fact]
+    public async Task Login_WithEmptyEmail_ReturnsBadRequest()
+    {
+        // Arrange
+        var context = TestDbContextFactory.CreateInMemoryDbContext();
+        var controller = CreateAuthController(context);
         var request = new LoginRequest { Email = "", Password = "password123", TenantId = 1 };
 
         // Act
-        var result = controller.Login(request);
+        var result = await controller.Login(request);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
     }
 
     [Fact]
-    public void Login_WithEmptyPassword_ReturnsBadRequest()
+    public async Task Register_WithValidRequest_CreatesTenantAndAdminUser()
     {
         // Arrange
-        var mockConfiguration = new Mock<IConfiguration>();
-        var controller = new AuthController(mockConfiguration.Object);
-        var request = new LoginRequest { Email = "user@example.com", Password = "", TenantId = 1 };
+        var context = TestDbContextFactory.CreateInMemoryDbContext();
+        var controller = CreateAuthController(context);
+        var request = new RegisterRequest
+        {
+            TenantName = "New Tenant",
+            Email = "owner@example.com",
+            Password = "password123"
+        };
 
         // Act
-        var result = controller.Login(request);
+        var result = await controller.Register(request);
 
         // Assert
-        result.Should().BeOfType<BadRequestObjectResult>();
+        result.Should().BeOfType<CreatedAtActionResult>();
+        context.Tenants.Should().ContainSingle(t => t.Name == "New Tenant");
+        context.Users.IgnoreQueryFilters().Should().ContainSingle(u =>
+            u.Email == "owner@example.com" && u.Role == "Admin");
+        context.RefreshTokens.IgnoreQueryFilters().Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Register_WithExistingEmail_ReturnsConflict()
+    {
+        // Arrange
+        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var controller = CreateAuthController(context);
+        var request = new RegisterRequest
+        {
+            TenantName = "New Tenant",
+            Email = "test@example.com",
+            Password = "password123"
+        };
+
+        // Act
+        var result = await controller.Register(request);
+
+        // Assert
+        result.Should().BeOfType<ConflictObjectResult>();
+    }
+
+    [Fact]
+    public async Task Refresh_WithValidRefreshToken_RotatesToken()
+    {
+        // Arrange
+        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var user = context.Users.IgnoreQueryFilters().Single();
+        user.Email = "user@example.com";
+        user.PasswordHash = PasswordHasher.HashPassword("password123");
+        await context.SaveChangesAsync();
+
+        var controller = CreateAuthController(context);
+        var loginResult = await controller.Login(new LoginRequest
+        {
+            Email = "user@example.com",
+            Password = "password123",
+            TenantId = user.TenantId
+        });
+        var loginResponse = (AuthResponse)((OkObjectResult)loginResult).Value!;
+
+        // Act
+        var refreshResult = await controller.Refresh(new RefreshTokenRequest
+        {
+            RefreshToken = loginResponse.RefreshToken
+        });
+
+        // Assert
+        refreshResult.Should().BeOfType<OkObjectResult>();
+        var refreshResponse = (AuthResponse)((OkObjectResult)refreshResult).Value!;
+        refreshResponse.Token.Should().NotBeNullOrWhiteSpace();
+        refreshResponse.RefreshToken.Should().NotBe(loginResponse.RefreshToken);
+
+        var refreshTokens = context.RefreshTokens.IgnoreQueryFilters().ToList();
+        refreshTokens.Should().HaveCount(2);
+        refreshTokens.Should().ContainSingle(rt => rt.RevokedAt != null && rt.ReplacedByTokenHash != null);
+        refreshTokens.Should().ContainSingle(rt => rt.RevokedAt == null);
+    }
+
+    [Fact]
+    public async Task Refresh_WithInvalidRefreshToken_ReturnsUnauthorized()
+    {
+        // Arrange
+        var context = TestDbContextFactory.CreateInMemoryDbContext();
+        var controller = CreateAuthController(context);
+
+        // Act
+        var result = await controller.Refresh(new RefreshTokenRequest { RefreshToken = "invalid" });
+
+        // Assert
+        result.Should().BeOfType<UnauthorizedObjectResult>();
+    }
+
+    [Fact]
+    public async Task Revoke_WithValidRefreshToken_RevokesToken()
+    {
+        // Arrange
+        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var user = context.Users.IgnoreQueryFilters().Single();
+        user.Email = "user@example.com";
+        user.PasswordHash = PasswordHasher.HashPassword("password123");
+        await context.SaveChangesAsync();
+
+        var controller = CreateAuthController(context);
+        var loginResult = await controller.Login(new LoginRequest
+        {
+            Email = "user@example.com",
+            Password = "password123",
+            TenantId = user.TenantId
+        });
+        var loginResponse = (AuthResponse)((OkObjectResult)loginResult).Value!;
+
+        // Act
+        var result = await controller.Revoke(new RefreshTokenRequest
+        {
+            RefreshToken = loginResponse.RefreshToken
+        });
+
+        // Assert
+        result.Should().BeOfType<NoContentResult>();
+        context.RefreshTokens.IgnoreQueryFilters().Single().RevokedAt.Should().NotBeNull();
+    }
+
+    private static IConfiguration CreateConfiguration()
+    {
+        return new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["JwtSettings:SecretKey"] = "test-secret-key-that-is-at-least-32-characters-long",
+                ["JwtSettings:Issuer"] = "TestIssuer",
+                ["JwtSettings:Audience"] = "TestAudience",
+                ["JwtSettings:ExpiryMinutes"] = "60",
+                ["JwtSettings:RefreshTokenExpiryDays"] = "7"
+            })
+            .Build();
+    }
+
+    private static AuthController CreateAuthController(ApplicationDbContext context)
+    {
+        return new AuthController(new AuthService(CreateConfiguration(), context));
     }
 }

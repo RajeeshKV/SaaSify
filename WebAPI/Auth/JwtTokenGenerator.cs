@@ -16,7 +16,6 @@ public static class JwtTokenGenerator
             {
                 new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                 new Claim(ClaimTypes.Email, email),
-                new Claim("sub", userId.ToString()),
                 new Claim("TenantId", tenantId.ToString()),
                 new Claim("TokenVersion", tokenVersion.ToString())
             }),

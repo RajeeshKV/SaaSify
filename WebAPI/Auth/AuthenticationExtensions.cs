@@ -44,18 +44,29 @@ public static class AuthenticationExtensions
                     var db = context.HttpContext.RequestServices
                         .GetRequiredService<ApplicationDbContext>();
 
-                    var userIdClaim = context.Principal.FindFirst("sub")?.Value;
+                    var userIdClaim = context.Principal
+                        .FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
                     var tokenVersionClaim = context.Principal.FindFirst("TokenVersion")?.Value;
 
                     if (string.IsNullOrEmpty(userIdClaim) || string.IsNullOrEmpty(tokenVersionClaim))
                     {
-                        context.Fail("Invalid token");
+                        context.Fail("Missing claims");
                         return;
                     }
 
-                    var user = await db.Users.FindAsync(int.Parse(userIdClaim));
+                    if (!int.TryParse(userIdClaim, out var userId) ||
+                        !int.TryParse(tokenVersionClaim, out var tokenVersion))
+                    {
+                        context.Fail("Invalid claim format");
+                        return;
+                    }
 
-                    if (user == null || user.TokenVersion != int.Parse(tokenVersionClaim))
+                    var user = await db.Users.FindAsync(userId);
+
+                    Console.WriteLine($"DB: {user?.TokenVersion}, Token: {tokenVersion}");
+
+                    if (user == null || user.TokenVersion != tokenVersion)
                     {
                         context.Fail("Token revoked");
                     }

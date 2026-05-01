@@ -53,7 +53,9 @@ public class TenantMiddleware
 
     private static bool ShouldSkipTenantResolution(PathString path)
     {
-        return path.StartsWithSegments("/api/auth")
+        return path == PathString.Empty
+            || path == "/"
+            || path.StartsWithSegments("/api/auth")
             || path.StartsWithSegments("/api/health")
             || path.StartsWithSegments("/swagger");
     }

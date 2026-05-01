@@ -85,6 +85,7 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseMiddleware<TenantMiddleware>();
 app.UseAuthorization();
+app.MapGet("/", () => Results.Redirect("/swagger"));
 app.MapControllers();
 
 try

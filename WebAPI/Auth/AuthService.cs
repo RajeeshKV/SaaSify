@@ -24,7 +24,7 @@ public class AuthService : IAuthService
     {
         var user = await _context.Users
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => u.Email == request.Email && u.TenantId == request.TenantId);
+            .FirstOrDefaultAsync(u => u.Email == request.Email);
 
         if (user == null || !PasswordHasher.VerifyPassword(request.Password, user.PasswordHash))
             return AuthResult.Unauthorized("Invalid email, password, or tenant");

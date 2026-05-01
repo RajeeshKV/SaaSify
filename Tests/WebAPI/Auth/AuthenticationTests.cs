@@ -20,6 +20,7 @@ public class JwtTokenGeneratorTests
             userId: 5,
             email: "user@example.com",
             tenantId: 9,
+            tokenVersion: 1,
             secretKey: "test-secret-key-that-is-at-least-32-characters-long",
             issuer: "TestIssuer",
             audience: "TestAudience",

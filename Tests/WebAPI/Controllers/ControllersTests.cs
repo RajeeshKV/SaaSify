@@ -6,6 +6,7 @@ using Xunit;
 using FluentAssertions;
 using Domain.Entities;
 using Tests.Helpers;
+using Tests.Application.Projects.Commands;
 
 namespace Tests.WebAPI.Controllers;
 
@@ -22,10 +23,12 @@ public class ProjectsControllerTests
         var mockTenantContext = new MockTenantContext();
         var createHandler = new CreateProjectCommandHandler(unitOfWork, mockTenantContext);
         var updateHandler = new UpdateProjectCommandHandler(unitOfWork);
+        var updateManyProjectHandler = new UpdateManyProjectCommandHandler(unitOfWork);
+        var deleteManyProjectHandler = new DeleteManyProjectCommandHandler(unitOfWork);
         var deleteHandler = new DeleteProjectCommandHandler(unitOfWork);
 
         var controller = new ProjectsController(
-            getByIdHandler, getAllHandler, createHandler, updateHandler, deleteHandler);
+            getByIdHandler, getAllHandler, createHandler, updateHandler, updateManyProjectHandler, deleteHandler, deleteManyProjectHandler);
 
         // Act
         var result = await controller.GetById(1);
@@ -49,10 +52,12 @@ public class ProjectsControllerTests
         var mockTenantContext = new MockTenantContext();
         var createHandler = new CreateProjectCommandHandler(unitOfWork, mockTenantContext);
         var updateHandler = new UpdateProjectCommandHandler(unitOfWork);
+        var updateManyProjectHandler = new UpdateManyProjectCommandHandler(unitOfWork);
         var deleteHandler = new DeleteProjectCommandHandler(unitOfWork);
+        var deleteManyProjectHandler = new DeleteManyProjectCommandHandler(unitOfWork);
 
         var controller = new ProjectsController(
-            getByIdHandler, getAllHandler, createHandler, updateHandler, deleteHandler);
+            getByIdHandler, getAllHandler, createHandler, updateHandler, updateManyProjectHandler, deleteHandler, deleteManyProjectHandler);
 
         // Act
         var result = await controller.GetById(999);
@@ -72,10 +77,12 @@ public class ProjectsControllerTests
         var mockTenantContext = new MockTenantContext();
         var createHandler = new CreateProjectCommandHandler(unitOfWork, mockTenantContext);
         var updateHandler = new UpdateProjectCommandHandler(unitOfWork);
+        var updateManyProjectHandler = new UpdateManyProjectCommandHandler(unitOfWork);
+        var deleteManyProjectHandler = new DeleteManyProjectCommandHandler(unitOfWork);
         var deleteHandler = new DeleteProjectCommandHandler(unitOfWork);
 
         var controller = new ProjectsController(
-            getByIdHandler, getAllHandler, createHandler, updateHandler, deleteHandler);
+            getByIdHandler, getAllHandler, createHandler, updateHandler, updateManyProjectHandler, deleteHandler, deleteManyProjectHandler);
 
         // Act
         var result = await controller.GetAll();
@@ -98,10 +105,12 @@ public class ProjectsControllerTests
         var mockTenantContext = new MockTenantContext();
         var createHandler = new CreateProjectCommandHandler(unitOfWork, mockTenantContext);
         var updateHandler = new UpdateProjectCommandHandler(unitOfWork);
+        var updateManyProjectHandler = new UpdateManyProjectCommandHandler(unitOfWork);
+        var deleteManyProjectHandler = new DeleteManyProjectCommandHandler(unitOfWork);
         var deleteHandler = new DeleteProjectCommandHandler(unitOfWork);
 
         var controller = new ProjectsController(
-            getByIdHandler, getAllHandler, createHandler, updateHandler, deleteHandler);
+            getByIdHandler, getAllHandler, createHandler, updateHandler, updateManyProjectHandler, deleteHandler, deleteManyProjectHandler);
 
         var command = new CreateProjectCommand { Name = "New Project" };
 
@@ -125,10 +134,12 @@ public class ProjectsControllerTests
         var mockTenantContext = new MockTenantContext();
         var createHandler = new CreateProjectCommandHandler(unitOfWork, mockTenantContext);
         var updateHandler = new UpdateProjectCommandHandler(unitOfWork);
+        var updateManyProjectHandler = new UpdateManyProjectCommandHandler(unitOfWork);
+        var deleteManyProjectHandler = new DeleteManyProjectCommandHandler(unitOfWork);
         var deleteHandler = new DeleteProjectCommandHandler(unitOfWork);
 
         var controller = new ProjectsController(
-            getByIdHandler, getAllHandler, createHandler, updateHandler, deleteHandler);
+            getByIdHandler, getAllHandler, createHandler, updateHandler, updateManyProjectHandler, deleteHandler, deleteManyProjectHandler);
 
         var command = new UpdateProjectCommand { Name = "Updated" };
 
@@ -151,10 +162,12 @@ public class ProjectsControllerTests
         var mockTenantContext = new MockTenantContext();
         var createHandler = new CreateProjectCommandHandler(unitOfWork, mockTenantContext);
         var updateHandler = new UpdateProjectCommandHandler(unitOfWork);
+        var updateManyProjectHandler = new UpdateManyProjectCommandHandler(unitOfWork);
+        var deleteManyProjectHandler = new DeleteManyProjectCommandHandler(unitOfWork);
         var deleteHandler = new DeleteProjectCommandHandler(unitOfWork);
 
         var controller = new ProjectsController(
-            getByIdHandler, getAllHandler, createHandler, updateHandler, deleteHandler);
+            getByIdHandler, getAllHandler, createHandler, updateHandler, updateManyProjectHandler, deleteHandler, deleteManyProjectHandler);
 
         var command = new UpdateProjectCommand { Id = 999, Name = "Updated From Route" };
 
@@ -177,10 +190,12 @@ public class ProjectsControllerTests
         var mockTenantContext = new MockTenantContext();
         var createHandler = new CreateProjectCommandHandler(unitOfWork, mockTenantContext);
         var updateHandler = new UpdateProjectCommandHandler(unitOfWork);
+        var updateManyProjectHandler = new UpdateManyProjectCommandHandler(unitOfWork);
+        var deleteManyProjectHandler = new DeleteManyProjectCommandHandler(unitOfWork);
         var deleteHandler = new DeleteProjectCommandHandler(unitOfWork);
 
         var controller = new ProjectsController(
-            getByIdHandler, getAllHandler, createHandler, updateHandler, deleteHandler);
+            getByIdHandler, getAllHandler, createHandler, updateHandler, updateManyProjectHandler, deleteHandler, deleteManyProjectHandler);
 
         // Act
         var result = await controller.Delete(1);
@@ -203,7 +218,7 @@ public class AuthControllerTests
         await context.SaveChangesAsync();
 
         var controller = CreateAuthController(context);
-        var request = new LoginRequest { Email = "user@example.com", Password = "password123", TenantId = user.TenantId };
+        var request = new LoginRequest { Email = "user@example.com", Password = "password123" };
 
         // Act
         var result = await controller.Login(request);
@@ -230,7 +245,7 @@ public class AuthControllerTests
         await context.SaveChangesAsync();
 
         var controller = CreateAuthController(context);
-        var request = new LoginRequest { Email = "user@example.com", Password = "wrong", TenantId = user.TenantId };
+        var request = new LoginRequest { Email = "user@example.com", Password = "wrong"};
 
         // Act
         var result = await controller.Login(request);
@@ -245,7 +260,7 @@ public class AuthControllerTests
         // Arrange
         var context = TestDbContextFactory.CreateInMemoryDbContext();
         var controller = CreateAuthController(context);
-        var request = new LoginRequest { Email = "", Password = "password123", TenantId = 1 };
+        var request = new LoginRequest { Email = "", Password = "password123"};
 
         // Act
         var result = await controller.Login(request);
@@ -312,8 +327,7 @@ public class AuthControllerTests
         var loginResult = await controller.Login(new LoginRequest
         {
             Email = "user@example.com",
-            Password = "password123",
-            TenantId = user.TenantId
+            Password = "password123"
         });
         var loginResponse = (AuthResponse)((OkObjectResult)loginResult).Value!;
 
@@ -363,8 +377,7 @@ public class AuthControllerTests
         var loginResult = await controller.Login(new LoginRequest
         {
             Email = "user@example.com",
-            Password = "password123",
-            TenantId = user.TenantId
+            Password = "password123"
         });
         var loginResponse = (AuthResponse)((OkObjectResult)loginResult).Value!;
 

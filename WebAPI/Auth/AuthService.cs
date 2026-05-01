@@ -139,6 +139,7 @@ public class AuthService : IAuthService
     private string GenerateToken(int userId, string email, int tenantId, int tokenVersion)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
+        Console.WriteLine("GEN KEY: " + jwtSettings["SecretKey"]);
         return JwtTokenGenerator.GenerateToken(
             userId,
             email,

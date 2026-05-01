@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
@@ -16,7 +17,8 @@ public static class AuthenticationExtensions
         var audience = jwtSettings["Audience"];
 
         var key = Encoding.ASCII.GetBytes(secretKey);
-
+        JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+        Console.WriteLine("VAL KEY: " + secretKey);
         services.AddAuthentication(x =>
         {
             x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

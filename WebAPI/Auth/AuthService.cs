@@ -63,35 +63,53 @@ public class AuthService : IAuthService
     public async Task<AuthResult> RefreshAsync(string refreshToken)
     {
         var refreshTokenHash = RefreshTokenService.HashRefreshToken(refreshToken);
+
         var storedToken = await _context.RefreshTokens
             .IgnoreQueryFilters()
             .Include(rt => rt.User)
             .FirstOrDefaultAsync(rt => rt.TokenHash == refreshTokenHash);
 
-        if (storedToken == null || !storedToken.IsActive)
+        if (storedToken == null)
+            return AuthResult.Unauthorized("Invalid refresh token");
+
+        if (storedToken.RevokedAt != null)
+        {
+            storedToken.User.TokenVersion++;
+            await _context.SaveChangesAsync();
+
+            return AuthResult.Unauthorized("Token reuse detected");
+        }
+
+        if (!storedToken.IsActive)
             return AuthResult.Unauthorized("Invalid refresh token");
 
         storedToken.RevokedAt = DateTime.UtcNow;
-        return AuthResult.Success(await CreateAuthResponseAsync(storedToken.User, storedToken));
+
+        return AuthResult.Success(
+            await CreateAuthResponseAsync(storedToken.User, storedToken)
+        );
     }
 
     public async Task RevokeAsync(string refreshToken)
     {
         var refreshTokenHash = RefreshTokenService.HashRefreshToken(refreshToken);
+
         var storedToken = await _context.RefreshTokens
-            .IgnoreQueryFilters()
+            .Include(rt => rt.User)
             .FirstOrDefaultAsync(rt => rt.TokenHash == refreshTokenHash);
 
         if (storedToken == null)
             return;
 
         storedToken.RevokedAt ??= DateTime.UtcNow;
+        storedToken.User.TokenVersion++;
+
         await _context.SaveChangesAsync();
     }
 
     private async Task<AuthResponse> CreateAuthResponseAsync(User user, RefreshToken previousRefreshToken = null)
     {
-        var accessToken = GenerateToken(user.Id, user.Email, user.TenantId);
+        var accessToken = GenerateToken(user.Id, user.Email, user.TenantId, user.TokenVersion);
         var refreshToken = RefreshTokenService.GenerateRefreshToken();
         var refreshTokenHash = RefreshTokenService.HashRefreshToken(refreshToken);
 
@@ -118,13 +136,14 @@ public class AuthService : IAuthService
             DateTime.UtcNow.AddMinutes(GetAccessTokenExpiryMinutes()));
     }
 
-    private string GenerateToken(int userId, string email, int tenantId)
+    private string GenerateToken(int userId, string email, int tenantId, int tokenVersion)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
         return JwtTokenGenerator.GenerateToken(
             userId,
             email,
             tenantId,
+            tokenVersion,
             jwtSettings["SecretKey"],
             jwtSettings["Issuer"],
             jwtSettings["Audience"],

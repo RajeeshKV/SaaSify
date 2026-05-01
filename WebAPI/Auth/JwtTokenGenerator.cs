@@ -5,7 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 
 public static class JwtTokenGenerator
 {
-    public static string GenerateToken(int userId, string email, int tenantId, string secretKey, string issuer, string audience, int expiryMinutes)
+    public static string GenerateToken(int userId, string email, int tenantId, int tokenVersion, string secretKey, string issuer, string audience, int expiryMinutes)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(secretKey);
@@ -16,7 +16,9 @@ public static class JwtTokenGenerator
             {
                 new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                 new Claim(ClaimTypes.Email, email),
-                new Claim("TenantId", tenantId.ToString())
+                new Claim("sub", userId.ToString()),
+                new Claim("TenantId", tenantId.ToString()),
+                new Claim("TokenVersion", tokenVersion.ToString())
             }),
             Expires = DateTime.UtcNow.AddMinutes(expiryMinutes),
             Issuer = issuer,

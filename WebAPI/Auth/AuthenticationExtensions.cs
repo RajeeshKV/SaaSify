@@ -37,6 +37,30 @@ public static class AuthenticationExtensions
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
             };
+            x.Events = new JwtBearerEvents
+            {
+                OnTokenValidated = async context =>
+                {
+                    var db = context.HttpContext.RequestServices
+                        .GetRequiredService<ApplicationDbContext>();
+
+                    var userIdClaim = context.Principal.FindFirst("sub")?.Value;
+                    var tokenVersionClaim = context.Principal.FindFirst("tokenVersion")?.Value;
+
+                    if (string.IsNullOrEmpty(userIdClaim) || string.IsNullOrEmpty(tokenVersionClaim))
+                    {
+                        context.Fail("Invalid token");
+                        return;
+                    }
+
+                    var user = await db.Users.FindAsync(int.Parse(userIdClaim));
+
+                    if (user == null || user.TokenVersion != int.Parse(tokenVersionClaim))
+                    {
+                        context.Fail("Token revoked");
+                    }
+                }
+            };
         });
 
         return services;

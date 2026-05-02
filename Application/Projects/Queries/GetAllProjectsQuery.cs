@@ -1,7 +1,15 @@
+using Application.Common.Pagination;
 using Domain.Entities;
 
-public class GetAllProjectsQuery
+public class GetAllProjectsQuery : PaginationParameters
 {
+    public GetAllProjectsQuery()
+    {
+    }
+
+    public GetAllProjectsQuery(int pageNumber, int pageSize) : base(pageNumber, pageSize)
+    {
+    }
 }
 
 public class GetAllProjectsQueryHandler
@@ -13,9 +21,21 @@ public class GetAllProjectsQueryHandler
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<IEnumerable<Project>> Handle(GetAllProjectsQuery request)
+    public async Task<PaginatedResponse<Project>> Handle(GetAllProjectsQuery request)
     {
         var projects = await _unitOfWork.Projects.GetAllAsync();
-        return projects;
+        var totalItems = projects.Count();
+        
+        var paginatedProjects = projects
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToList();
+
+        return new PaginatedResponse<Project>(
+            paginatedProjects,
+            request.PageNumber,
+            request.PageSize,
+            totalItems
+        );
     }
 }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Application.Common.Pagination;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -45,9 +46,9 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
-        var query = new GetAllProjectsQuery();
+        var query = new GetAllProjectsQuery(pageNumber, pageSize);
         var result = await _getAllProjectsHandler.Handle(query);
         return Ok(result);
     }

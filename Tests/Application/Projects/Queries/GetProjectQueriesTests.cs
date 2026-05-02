@@ -1,3 +1,4 @@
+using Application.Common.Pagination;
 using Domain.Entities;
 using Tests.Helpers;
 using Xunit;
@@ -60,7 +61,7 @@ public class GetAllProjectsQueryHandlerTests
         var result = await handler.Handle(query);
 
         // Assert
-        result.Should().HaveCount(2);
+        result.Data.Should().HaveCount(2);
     }
 
     [Fact]
@@ -79,6 +80,6 @@ public class GetAllProjectsQueryHandlerTests
         var result = await handler.Handle(query);
 
         // Assert
-        result.Should().BeEmpty();
+        result.Data.Should().BeEmpty();
     }
 }

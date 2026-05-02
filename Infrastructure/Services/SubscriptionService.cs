@@ -1,4 +1,5 @@
 using Application.Common.Interfaces;
+using Application.Common.Configuration;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,11 +7,13 @@ public class SubscriptionService : ISubscriptionService
 {
     private readonly ApplicationDbContext _context;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly SubscriptionConfiguration _subscriptionConfig;
 
-    public SubscriptionService(ApplicationDbContext context, IUnitOfWork unitOfWork)
+    public SubscriptionService(ApplicationDbContext context, IUnitOfWork unitOfWork, SubscriptionConfiguration subscriptionConfig)
     {
         _context = context;
         _unitOfWork = unitOfWork;
+        _subscriptionConfig = subscriptionConfig;
     }
 
     public async Task<SubscriptionDto?> GetCurrentSubscriptionAsync(int tenantId)
@@ -37,33 +40,14 @@ public class SubscriptionService : ISubscriptionService
 
     public async Task<List<PlanDto>> GetAvailablePlansAsync()
     {
-        return new List<PlanDto>
-        {
-            new PlanDto(
-                "Free",
-                "Perfect for small teams getting started",
-                0,
-                100,
-                3,
-                new[] { "Basic features", "3 users", "100 requests/minute" }
-            ),
-            new PlanDto(
-                "Professional",
-                "For growing teams that need more power",
-                29.99m,
-                1000,
-                10,
-                new[] { "All Free features", "10 users", "1000 requests/minute", "Priority support" }
-            ),
-            new PlanDto(
-                "Enterprise",
-                "For large organizations with advanced needs",
-                99.99m,
-                5000,
-                50,
-                new[] { "All Professional features", "50 users", "5000 requests/minute", "24/7 support", "Custom integrations" }
-            )
-        };
+        return _subscriptionConfig.Plans.Select(plan => new PlanDto(
+            plan.Name,
+            plan.Description,
+            plan.MonthlyPrice,
+            plan.RateLimitPerMinute,
+            plan.MaxUsers,
+            plan.Features.ToArray()
+        )).ToList();
     }
 
     public async Task<SubscriptionDto> UpgradePlanAsync(int tenantId, string newPlan)

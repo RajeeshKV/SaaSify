@@ -2,6 +2,7 @@ using Application.Common.Interfaces;
 using Application.Common.Configuration;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 public class SubscriptionService : ISubscriptionService
 {
@@ -14,6 +15,30 @@ public class SubscriptionService : ISubscriptionService
         _context = context;
         _unitOfWork = unitOfWork;
         _subscriptionConfig = subscriptionConfig;
+    }
+
+    private (DateTime StartDate, DateTime EndDate) CalculateSubscriptionDates(DateTime? currentStartDate = null)
+    {
+        // Use Indian time zone
+        var indianTimeZone = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
+        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, indianTimeZone);
+        
+        // If there's a current subscription, start from its end date
+        DateTime startDate;
+        if (currentStartDate.HasValue)
+        {
+            startDate = TimeZoneInfo.ConvertTimeFromUtc(currentStartDate.Value, indianTimeZone);
+        }
+        else
+        {
+            startDate = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, DateTimeKind.Utc);
+            startDate = TimeZoneInfo.ConvertTimeFromUtc(startDate, indianTimeZone);
+        }
+        
+        // Calculate end date as exactly one month from start date
+        var endDate = startDate.AddMonths(1);
+        
+        return (startDate, endDate);
     }
 
     public async Task<SubscriptionDto?> GetCurrentSubscriptionAsync(int tenantId)
@@ -68,13 +93,16 @@ public class SubscriptionService : ISubscriptionService
             currentSubscription.IsActive = false;
         }
 
+        // Calculate subscription dates with Indian time zone
+        var (startDate, endDate) = CalculateSubscriptionDates(currentSubscription?.EndDate);
+        
         // Create new subscription
         var subscription = new Subscription
         {
             TenantId = tenantId,
             Plan = newPlan,
-            StartDate = DateTime.UtcNow,
-            EndDate = DateTime.UtcNow.AddMonths(1),
+            StartDate = startDate,
+            EndDate = endDate,
             IsActive = true,
             Amount = plan.MonthlyPrice,
             Currency = "USD",
@@ -106,12 +134,15 @@ public class SubscriptionService : ISubscriptionService
 
     public async Task<SubscriptionDto> CreateSubscriptionAsync(int tenantId, string plan, decimal amount)
     {
+        // Calculate subscription dates with Indian time zone
+        var (startDate, endDate) = CalculateSubscriptionDates();
+        
         var subscription = new Subscription
         {
             TenantId = tenantId,
             Plan = plan,
-            StartDate = DateTime.UtcNow,
-            EndDate = DateTime.UtcNow.AddMonths(1),
+            StartDate = startDate,
+            EndDate = endDate,
             IsActive = true,
             Amount = amount,
             Currency = "USD",

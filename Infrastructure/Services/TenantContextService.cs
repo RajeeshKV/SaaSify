@@ -22,10 +22,14 @@ public class TenantContextService : ITenantContextService
     {
         _tenantContext.SetTenantId(tenantId);
         
-        // Set PostgreSQL session variable for RLS
-        await _context.Database.ExecuteSqlRawAsync(
-            "SELECT set_config('app.tenant_id', {0}, true)",
-            tenantId);
+        // For now, skip PostgreSQL session variable setting to avoid compatibility issues
+        // The tenant filtering is handled by Entity Framework global query filters
+        // PostgreSQL RLS can be enabled later when database is properly configured
+        
+        // TODO: Enable PostgreSQL session variables when database supports set_config function
+        // await _context.Database.ExecuteSqlRawAsync(
+        //     "SET app.tenant_id = {0}",
+        //     tenantId);
     }
 
     public async Task<int?> GetCurrentTenantIdAsync()

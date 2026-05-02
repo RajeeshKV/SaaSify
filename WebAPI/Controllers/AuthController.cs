@@ -93,4 +93,5 @@ public record AuthResponse(
     string Role,
     string Token,
     string RefreshToken,
-    DateTime AccessTokenExpiresAt);
+    DateTime AccessTokenExpiresAt,
+    string TenantName);

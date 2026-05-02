@@ -130,6 +130,11 @@ public class AuthService : IAuthService
 
         await _context.SaveChangesAsync();
 
+        // Fetch tenant name for the response
+        var tenant = await _context.Tenants
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t => t.Id == user.TenantId);
+
         return new AuthResponse(
             user.TenantId,
             user.Id,
@@ -137,7 +142,9 @@ public class AuthService : IAuthService
             user.Role,
             accessToken,
             refreshToken,
-            DateTime.UtcNow.AddMinutes(GetAccessTokenExpiryMinutes()));
+            DateTime.UtcNow.AddMinutes(GetAccessTokenExpiryMinutes()),
+            tenant?.Name ?? "Unknown"
+        );
     }
 
     private string GenerateToken(int userId, string email, int tenantId, int tokenVersion)

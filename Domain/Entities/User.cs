@@ -12,4 +12,5 @@ public class User
 
     public Tenant Tenant { get; set; }
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+    public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 }

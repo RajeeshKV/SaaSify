@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using Xunit;
 using FluentAssertions;
+using Moq;
 
 namespace Tests.Infrastructure.Services;
 
@@ -11,7 +12,9 @@ public class InMemoryCacheServiceTests
     {
         // Arrange
         var memoryCache = new MemoryCache(new MemoryCacheOptions());
-        var cacheService = new InMemoryCacheService(memoryCache);
+        var mockTenantContext = new Mock<ITenantContext>();
+        mockTenantContext.Setup(x => x.TenantId).Returns(1);
+        var cacheService = new InMemoryCacheService(memoryCache, mockTenantContext.Object);
         var key = "test-key";
         var value = "test-value";
 
@@ -28,7 +31,9 @@ public class InMemoryCacheServiceTests
     {
         // Arrange
         var memoryCache = new MemoryCache(new MemoryCacheOptions());
-        var cacheService = new InMemoryCacheService(memoryCache);
+        var mockTenantContext = new Mock<ITenantContext>();
+        mockTenantContext.Setup(x => x.TenantId).Returns(1);
+        var cacheService = new InMemoryCacheService(memoryCache, mockTenantContext.Object);
 
         // Act
         var result = await cacheService.GetAsync<string>("non-existent-key");
@@ -42,7 +47,9 @@ public class InMemoryCacheServiceTests
     {
         // Arrange
         var memoryCache = new MemoryCache(new MemoryCacheOptions());
-        var cacheService = new InMemoryCacheService(memoryCache);
+        var mockTenantContext = new Mock<ITenantContext>();
+        mockTenantContext.Setup(x => x.TenantId).Returns(1);
+        var cacheService = new InMemoryCacheService(memoryCache, mockTenantContext.Object);
         var key = "expiring-key";
         var value = "expiring-value";
 
@@ -60,7 +67,9 @@ public class InMemoryCacheServiceTests
     {
         // Arrange
         var memoryCache = new MemoryCache(new MemoryCacheOptions());
-        var cacheService = new InMemoryCacheService(memoryCache);
+        var mockTenantContext = new Mock<ITenantContext>();
+        mockTenantContext.Setup(x => x.TenantId).Returns(1);
+        var cacheService = new InMemoryCacheService(memoryCache, mockTenantContext.Object);
         var key = "remove-key";
         await cacheService.SetAsync(key, "value");
 
@@ -77,7 +86,9 @@ public class InMemoryCacheServiceTests
     {
         // Arrange
         var memoryCache = new MemoryCache(new MemoryCacheOptions());
-        var cacheService = new InMemoryCacheService(memoryCache);
+        var mockTenantContext = new Mock<ITenantContext>();
+        mockTenantContext.Setup(x => x.TenantId).Returns(1);
+        var cacheService = new InMemoryCacheService(memoryCache, mockTenantContext.Object);
         await cacheService.SetAsync("projects:1", "value");
 
         // Act
@@ -93,7 +104,9 @@ public class InMemoryCacheServiceTests
     {
         // Arrange
         var memoryCache = new MemoryCache(new MemoryCacheOptions());
-        var cacheService = new InMemoryCacheService(memoryCache);
+        var mockTenantContext = new Mock<ITenantContext>();
+        mockTenantContext.Setup(x => x.TenantId).Returns(1);
+        var cacheService = new InMemoryCacheService(memoryCache, mockTenantContext.Object);
         var key = "object-key";
         var value = new { Id = 1, Name = "Test" };
 

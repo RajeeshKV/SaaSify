@@ -80,12 +80,13 @@ public class TenantMiddlewareTests
         var mockLogger = new Mock<ILogger<TenantMiddleware>>();
         var middleware = new TenantMiddleware(mockNext.Object, mockLogger.Object);
         var mockTenantContext = new Mock<ITenantContext>();
+        var mockTenantContextService = new Mock<ITenantContextService>();
 
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Headers["X-Tenant-Id"] = "1";
 
         // Act
-        await middleware.Invoke(httpContext, mockTenantContext.Object);
+        await middleware.Invoke(httpContext, mockTenantContext.Object, mockTenantContextService.Object);
 
         // Assert
         mockTenantContext.Verify(tc => tc.SetTenantId(1), Times.Once);
@@ -100,12 +101,13 @@ public class TenantMiddlewareTests
         var mockLogger = new Mock<ILogger<TenantMiddleware>>();
         var middleware = new TenantMiddleware(mockNext.Object, mockLogger.Object);
         var mockTenantContext = new Mock<ITenantContext>();
+        var mockTenantContextService = new Mock<ITenantContextService>();
 
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Headers["X-Tenant-Id"] = "";
 
         // Act
-        await middleware.Invoke(httpContext, mockTenantContext.Object);
+        await middleware.Invoke(httpContext, mockTenantContext.Object, mockTenantContextService.Object);
 
         // Assert
         httpContext.Response.StatusCode.Should().Be(400);
@@ -120,12 +122,13 @@ public class TenantMiddlewareTests
         var mockLogger = new Mock<ILogger<TenantMiddleware>>();
         var middleware = new TenantMiddleware(mockNext.Object, mockLogger.Object);
         var mockTenantContext = new Mock<ITenantContext>();
+        var mockTenantContextService = new Mock<ITenantContextService>();
 
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Headers["X-Tenant-Id"] = "invalid";
 
         // Act
-        await middleware.Invoke(httpContext, mockTenantContext.Object);
+        await middleware.Invoke(httpContext, mockTenantContext.Object, mockTenantContextService.Object);
 
         // Assert
         httpContext.Response.StatusCode.Should().Be(400);
@@ -139,6 +142,7 @@ public class TenantMiddlewareTests
         var mockLogger = new Mock<ILogger<TenantMiddleware>>();
         var middleware = new TenantMiddleware(mockNext.Object, mockLogger.Object);
         var mockTenantContext = new Mock<ITenantContext>();
+        var mockTenantContextService = new Mock<ITenantContextService>();
 
         var httpContext = new DefaultHttpContext
         {
@@ -149,7 +153,7 @@ public class TenantMiddlewareTests
         };
 
         // Act
-        await middleware.Invoke(httpContext, mockTenantContext.Object);
+        await middleware.Invoke(httpContext, mockTenantContext.Object, mockTenantContextService.Object);
 
         // Assert
         mockTenantContext.Verify(tc => tc.SetTenantId(12), Times.Once);
@@ -164,6 +168,7 @@ public class TenantMiddlewareTests
         var mockLogger = new Mock<ILogger<TenantMiddleware>>();
         var middleware = new TenantMiddleware(mockNext.Object, mockLogger.Object);
         var mockTenantContext = new Mock<ITenantContext>();
+        var mockTenantContextService = new Mock<ITenantContextService>();
 
         var httpContext = new DefaultHttpContext
         {
@@ -175,7 +180,7 @@ public class TenantMiddlewareTests
         httpContext.Request.Headers["X-Tenant-Id"] = "34";
 
         // Act
-        await middleware.Invoke(httpContext, mockTenantContext.Object);
+        await middleware.Invoke(httpContext, mockTenantContext.Object, mockTenantContextService.Object);
 
         // Assert
         mockTenantContext.Verify(tc => tc.SetTenantId(34), Times.Once);

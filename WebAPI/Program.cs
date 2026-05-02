@@ -1,6 +1,8 @@
 using Serilog;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi.Models;
+using System.Threading.RateLimiting;
+using Application.Common.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -65,6 +67,29 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // Add JWT authentication
 builder.Services.AddJwtAuthentication(builder.Configuration);
 
+// Add rate limiting
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy<string>("tenant", context =>
+    {
+        var tenantIdClaim = context.User?.FindFirst("TenantId")?.Value;
+        var partitionKey = string.IsNullOrEmpty(tenantIdClaim) ? "anonymous" : tenantIdClaim;
+        
+        // For now, use standard rate limiting. Plan-based limits can be implemented
+        // with a custom rate limiter or middleware that checks subscription plans
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 100, // Default limit
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 10
+            });
+    });
+});
+
+
 // Register handlers
 builder.Services.AddScoped<GetProjectByIdQueryHandler>();
 builder.Services.AddScoped<GetAllProjectsQueryHandler>();
@@ -90,7 +115,9 @@ if (app.Environment.IsDevelopment())
 app.UseCors("ClientApp");
 app.UseAuthentication();
 app.UseMiddleware<TenantMiddleware>();
+app.UseRateLimiter();
 app.UseAuthorization();
+app.MapHealthChecks("/health");
 app.MapGet("/", () => Results.Redirect("/swagger"));
 app.MapControllers();
 

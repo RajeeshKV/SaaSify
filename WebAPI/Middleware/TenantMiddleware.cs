@@ -11,7 +11,7 @@ public class TenantMiddleware
         _logger = logger;
     }
 
-    public async Task Invoke(HttpContext context, ITenantContext tenantContext)
+    public async Task Invoke(HttpContext context, ITenantContext tenantContext, ITenantContextService tenantContextService)
     {
         if (ShouldSkipTenantResolution(context.Request.Path) ||
             HttpMethods.IsOptions(context.Request.Method))
@@ -48,7 +48,8 @@ public class TenantMiddleware
             return;
         }
 
-        tenantContext.SetTenantId(tenantId);
+        // Set tenant context for both the context service and the existing tenant context
+        await tenantContextService.SetTenantContextAsync(tenantId);
 
         _logger.LogInformation("Tenant {TenantId} set for {Path}", tenantId, context.Request.Path);
 

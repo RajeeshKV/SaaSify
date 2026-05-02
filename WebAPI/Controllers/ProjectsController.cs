@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+[EnableRateLimiting("tenant")]
 public class ProjectsController : ControllerBase
 {
     private readonly GetProjectByIdQueryHandler _getProjectByIdHandler;

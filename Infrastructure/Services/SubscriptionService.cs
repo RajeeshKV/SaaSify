@@ -19,26 +19,29 @@ public class SubscriptionService : ISubscriptionService
 
     private (DateTime StartDate, DateTime EndDate) CalculateSubscriptionDates(DateTime? currentStartDate = null)
     {
-        // Use Indian time zone
+        // Use Indian time zone for calculation but store as UTC
         var indianTimeZone = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
-        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, indianTimeZone);
+        var nowInIndia = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, indianTimeZone);
         
-        // If there's a current subscription, start from its end date
-        DateTime startDate;
+        // Calculate start date in IST (beginning of day)
+        DateTime startDateInIndia;
         if (currentStartDate.HasValue)
         {
-            startDate = TimeZoneInfo.ConvertTimeFromUtc(currentStartDate.Value, indianTimeZone);
+            startDateInIndia = TimeZoneInfo.ConvertTimeFromUtc(currentStartDate.Value, indianTimeZone);
         }
         else
         {
-            startDate = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, DateTimeKind.Utc);
-            startDate = TimeZoneInfo.ConvertTimeFromUtc(startDate, indianTimeZone);
+            startDateInIndia = new DateTime(nowInIndia.Year, nowInIndia.Month, nowInIndia.Day, 0, 0, 0, DateTimeKind.Unspecified);
         }
         
-        // Calculate end date as exactly one month from start date
-        var endDate = startDate.AddMonths(1);
+        // Calculate end date as exactly one month from start date in IST
+        var endDateInIndia = startDateInIndia.AddMonths(1);
         
-        return (startDate, endDate);
+        // Convert both dates back to UTC for database storage
+        var startDateUtc = TimeZoneInfo.ConvertTimeToUtc(startDateInIndia, indianTimeZone);
+        var endDateUtc = TimeZoneInfo.ConvertTimeToUtc(endDateInIndia, indianTimeZone);
+        
+        return (startDateUtc, endDateUtc);
     }
 
     public async Task<SubscriptionDto?> GetCurrentSubscriptionAsync(int tenantId)

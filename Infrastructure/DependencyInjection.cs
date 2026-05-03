@@ -75,6 +75,9 @@ public static class DependencyInjection
         
         // Add Order Event Publisher
         services.AddSingleton<IOrderEventPublisher, OrderEventPublisher>();
+        
+        // Add OrderService Client
+        services.AddHttpClient<IOrderServiceClient, OrderServiceClient>();
 
         return services;
     }

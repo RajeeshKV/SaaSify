@@ -16,9 +16,10 @@ run_migrations() {
   attempt=1
   max_attempts="${MIGRATION_MAX_ATTEMPTS:-5}"
 
+  cd /src
   until dotnet ef database update \
-      --project /src/Infrastructure/Infrastructure.csproj \
-      --startup-project /src/WebAPI/WebAPI.csproj \
+      --project Infrastructure/Infrastructure.csproj \
+      --startup-project WebAPI/WebAPI.csproj \
       --configuration Release; do
     if [ "${attempt}" -ge "${max_attempts}" ]; then
       echo "Database migrations failed after ${attempt} attempt(s). Check the Render database connection string and migration logs above."

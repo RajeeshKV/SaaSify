@@ -80,8 +80,7 @@ public static class DependencyInjection
         // Add OrderService Client
         services.AddHttpClient<IOrderServiceClient, OrderServiceClient>();
         
-        // Add Order WebSocket Service
-        services.AddSingleton<OrderWebSocketService>();
+        // Order WebSocket Service is registered in WebAPI Program.cs
 
         return services;
     }

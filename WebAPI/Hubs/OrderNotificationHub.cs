@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using Infrastructure.MultiTenancy;
+using Microsoft.Extensions.Logging;
+using Infrastructure.Services;
 
 namespace WebAPI.Hubs
 {

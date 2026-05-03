@@ -1,4 +1,5 @@
 using Application.Common.Interfaces;
+using Application.Common.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Stripe;
@@ -10,22 +11,19 @@ namespace Infrastructure.Services
     {
         private readonly IConfiguration _configuration;
         private readonly ILogger<UnifiedStripePaymentService> _logger;
-        private readonly OrderWebSocketService _webSocketService;
 
         public UnifiedStripePaymentService(
             IConfiguration configuration, 
-            ILogger<UnifiedStripePaymentService> logger,
-            OrderWebSocketService webSocketService)
+            ILogger<UnifiedStripePaymentService> logger)
         {
             _configuration = configuration;
             _logger = logger;
-            _webSocketService = webSocketService;
             
             // Configure Stripe
             StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"];
         }
 
-        public async Task<PaymentIntentResponse> CreatePaymentIntentAsync(PaymentIntentRequest request)
+        public async Task<Application.Common.Interfaces.PaymentIntentResponse> CreatePaymentIntentAsync(PaymentIntentRequest request)
         {
             try
             {
@@ -52,7 +50,7 @@ namespace Infrastructure.Services
                 _logger.LogInformation("Payment intent created: {PaymentIntentId} for tenant {TenantId}, amount {Amount}", 
                     paymentIntent.Id, request.TenantId, request.Amount);
 
-                return new PaymentIntentResponse
+                return new Application.Common.Interfaces.PaymentIntentResponse
                 {
                     ClientSecret = paymentIntent.ClientSecret,
                     PaymentIntentId = paymentIntent.Id,
@@ -66,7 +64,7 @@ namespace Infrastructure.Services
             }
         }
 
-        public async Task<CheckoutSessionResponse> CreateCheckoutSessionAsync(CheckoutSessionRequest request)
+        public async Task<Application.Common.Interfaces.CheckoutSessionResponse> CreateCheckoutSessionAsync(CheckoutSessionRequest request)
         {
             try
             {
@@ -114,7 +112,7 @@ namespace Infrastructure.Services
                 _logger.LogInformation("Checkout session created: {SessionId} for tenant {TenantId}, plan {PlanId}", 
                     session.Id, request.TenantId, request.PlanId);
 
-                return new CheckoutSessionResponse
+                return new Application.Common.Interfaces.CheckoutSessionResponse
                 {
                     SessionId = session.Id,
                     CheckoutUrl = session.Url,
@@ -193,9 +191,6 @@ namespace Infrastructure.Services
             if (plan == null)
                 return;
 
-            // Send WebSocket notification for subscription completion
-            await _webSocketService.NotifySubscriptionCompleted(tenantId, planId);
-
             _logger.LogInformation("Subscription completed for tenant {TenantId}, plan {PlanId}", tenantId, planId);
             
             // TODO: Update tenant subscription in database
@@ -207,12 +202,6 @@ namespace Infrastructure.Services
             var tenantId = int.Parse(session.Metadata["tenant_id"]);
             var orderId = session.Metadata.GetValueOrDefault("order_id");
             
-            if (int.TryParse(orderId, out var orderIdInt))
-            {
-                // Send WebSocket notification for order payment completion
-                await _webSocketService.NotifyPaymentCompleted(tenantId, orderIdInt, session.Id);
-            }
-            
             _logger.LogInformation("Order payment completed for tenant {TenantId}, order {OrderId}", tenantId, orderId);
             
             // TODO: Update order status in database
@@ -223,26 +212,6 @@ namespace Infrastructure.Services
         {
             var paymentType = paymentIntent.Metadata.GetValueOrDefault("payment_type");
             var tenantIdStr = paymentIntent.Metadata.GetValueOrDefault("tenant_id");
-            
-            if (int.TryParse(tenantIdStr, out var tenantId))
-            {
-                if (paymentType == "order")
-                {
-                    var orderIdStr = paymentIntent.Metadata.GetValueOrDefault("order_id");
-                    if (int.TryParse(orderIdStr, out var orderId))
-                    {
-                        await _webSocketService.NotifyPaymentCompleted(tenantId, orderId, paymentIntent.Id);
-                    }
-                }
-                else if (paymentType == "subscription")
-                {
-                    var planId = paymentIntent.Metadata.GetValueOrDefault("plan_id");
-                    if (!string.IsNullOrEmpty(planId))
-                    {
-                        await _webSocketService.NotifySubscriptionPaymentCompleted(tenantId, planId, paymentIntent.Id);
-                    }
-                }
-            }
             
             _logger.LogInformation("Payment intent succeeded for tenant {TenantId}, type {PaymentType}", tenantIdStr, paymentType);
         }

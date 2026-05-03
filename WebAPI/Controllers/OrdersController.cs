@@ -1,10 +1,11 @@
 using Application.Common.Interfaces;
 using Domain.DTOs;
 using Infrastructure.Services;
+using WebAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Infrastructure.MultiTenancy;
+using Infrastructure.Services;
 
 namespace WebAPI.Controllers
 {
@@ -299,8 +300,8 @@ namespace WebAPI.Controllers
 
     public record CreatePaymentIntentRequest(
         decimal Amount,
-        string? Currency = "usd",
-        string? CustomerEmail
+        string? CustomerEmail,
+        string? Currency = "usd"
     );
 
     public record UpdateOrderStatusRequest(

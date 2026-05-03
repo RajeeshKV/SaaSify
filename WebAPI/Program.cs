@@ -22,6 +22,7 @@ builder.Host.UseSerilog();
 // Add services to the container
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSignalR();
+builder.Services.AddSingleton<WebAPI.Services.OrderWebSocketService>();
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme

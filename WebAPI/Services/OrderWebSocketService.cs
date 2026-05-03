@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.SignalR;
 using WebAPI.Hubs;
+using Application.Common.Interfaces;
 
-namespace Infrastructure.Services
+namespace WebAPI.Services
 {
     public class OrderWebSocketService
     {
@@ -64,6 +65,7 @@ namespace Infrastructure.Services
                 status = "pending",
                 eventType = "OrderCreated",
                 timestamp = DateTime.UtcNow,
+                paymentType = "order",
                 data = new { message = $"New order #{orderId} created" }
             };
 
@@ -82,6 +84,7 @@ namespace Infrastructure.Services
                 status = "processing",
                 eventType = "PaymentCompleted",
                 timestamp = DateTime.UtcNow,
+                paymentType = "order",
                 data = new { message = "Payment completed, processing order" }
             };
 
@@ -99,6 +102,7 @@ namespace Infrastructure.Services
                 status = "completed",
                 eventType = "OrderCompleted",
                 timestamp = DateTime.UtcNow,
+                paymentType = "order",
                 data = new { message = "Order completed successfully" }
             };
 

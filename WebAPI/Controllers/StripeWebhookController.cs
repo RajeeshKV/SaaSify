@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
+using Application.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Infrastructure.Services;
+using WebAPI.Services;
 using Microsoft.Extensions.Logging;
 
 namespace WebAPI.Controllers

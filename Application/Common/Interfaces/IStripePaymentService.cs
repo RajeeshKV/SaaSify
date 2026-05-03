@@ -32,16 +32,16 @@ namespace Application.Common.Interfaces
 
     public class PaymentIntentResponse
     {
-        public string ClientSecret { get; set; }
-        public string PaymentIntentId { get; set; }
-        public string Status { get; set; }
+        public string ClientSecret { get; set; } = string.Empty;
+        public string PaymentIntentId { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
     }
 
     public class CheckoutSessionResponse
     {
-        public string SessionId { get; set; }
-        public string CheckoutUrl { get; set; }
-        public string Status { get; set; }
+        public string SessionId { get; set; } = string.Empty;
+        public string CheckoutUrl { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
     }
 
     public enum PaymentType

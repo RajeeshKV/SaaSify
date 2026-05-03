@@ -155,7 +155,7 @@ public class AuthService : IAuthService
             .Distinct()
             .ToListAsync();
 
-        var accessToken = GenerateToken(user.Id, user.Email, user.TenantId, user.TokenVersion, permissions);
+        var accessToken = GenerateToken(user.Id, user.Email, user.TenantId, user.TokenVersion, permissions, user.IsEmailVerified);
         var refreshToken = RefreshTokenService.GenerateRefreshToken();
         var refreshTokenHash = RefreshTokenService.HashRefreshToken(refreshToken);
 
@@ -189,7 +189,7 @@ public class AuthService : IAuthService
         );
     }
 
-    private string GenerateToken(int userId, string email, int tenantId, int tokenVersion, List<string> permissions)
+    private string GenerateToken(int userId, string email, int tenantId, int tokenVersion, List<string> permissions, bool isEmailVerified)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
         Console.WriteLine("GEN KEY: " + jwtSettings["SecretKey"]);
@@ -199,6 +199,7 @@ public class AuthService : IAuthService
             tenantId,
             tokenVersion,
             permissions,
+            isEmailVerified,
             jwtSettings["SecretKey"],
             jwtSettings["Issuer"],
             jwtSettings["Audience"],

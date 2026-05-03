@@ -22,6 +22,7 @@ public class JwtTokenGeneratorTests
             tenantId: 1,
             tokenVersion: 1,
             permissions: new List<string> { "project.read", "project.write" },
+            isEmailVerified: true,
             secretKey: "test_secret_key",
             issuer: "test_issuer",
             audience: "test_audience",
@@ -34,9 +35,7 @@ public class JwtTokenGeneratorTests
         jwt.Claims.Should().Contain(c => c.Type == ClaimTypes.NameIdentifier && c.Value == "1");
         jwt.Claims.Should().Contain(c => c.Type == ClaimTypes.Email && c.Value == "test@example.com");
         jwt.Claims.Should().Contain(c => c.Type == "TenantId" && c.Value == "1");
-        jwt.Claims.Should().Contain(c => c.Type == ClaimTypes.NameIdentifier && c.Value == "5");
-        jwt.Claims.Should().Contain(c => c.Type == ClaimTypes.Email && c.Value == "user@example.com");
-        jwt.Claims.Should().Contain(c => c.Type == "TenantId" && c.Value == "9");
+        jwt.Claims.Should().Contain(c => c.Type == "IsEmailVerified" && c.Value == "True");
         jwt.ValidTo.Should().BeAfter(DateTime.UtcNow);
     }
 }

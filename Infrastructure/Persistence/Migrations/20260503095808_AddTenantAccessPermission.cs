@@ -154,12 +154,11 @@ namespace Infrastructure.Persistence.Migrations
                 );
 
                 -- Assign all permissions to Admin role
-                INSERT INTO role_permissions (tenant_id, role_id, permission_id, created_at, updated_at)
+                INSERT INTO role_permissions (tenant_id, role_id, permission_id, granted_at)
                 SELECT 
                     t.id,
                     r.id,
                     p.id,
-                    CURRENT_TIMESTAMP,
                     CURRENT_TIMESTAMP
                 FROM tenants t
                 JOIN roles r ON r.name = 'Admin' AND r.tenant_id = t.id
@@ -173,12 +172,11 @@ namespace Infrastructure.Persistence.Migrations
                 );
 
                 -- Assign specific permissions to Manager role
-                INSERT INTO role_permissions (tenant_id, role_id, permission_id, created_at, updated_at)
+                INSERT INTO role_permissions (tenant_id, role_id, permission_id, granted_at)
                 SELECT 
                     t.id,
                     r.id,
                     p.id,
-                    CURRENT_TIMESTAMP,
                     CURRENT_TIMESTAMP
                 FROM tenants t
                 JOIN roles r ON r.name = 'Manager' AND r.tenant_id = t.id
@@ -193,12 +191,11 @@ namespace Infrastructure.Persistence.Migrations
                 );
 
                 -- Assign read permission to User role
-                INSERT INTO role_permissions (tenant_id, role_id, permission_id, created_at, updated_at)
+                INSERT INTO role_permissions (tenant_id, role_id, permission_id, granted_at)
                 SELECT 
                     t.id,
                     r.id,
                     p.id,
-                    CURRENT_TIMESTAMP,
                     CURRENT_TIMESTAMP
                 FROM tenants t
                 JOIN roles r ON r.name = 'User' AND r.tenant_id = t.id
@@ -212,12 +209,11 @@ namespace Infrastructure.Persistence.Migrations
                 );
 
                 -- Ensure all existing users have Admin role if they don't have any role
-                INSERT INTO user_roles (tenant_id, user_id, role_id, created_at, updated_at)
+                INSERT INTO user_roles (tenant_id, user_id, role_id, assigned_at)
                 SELECT 
                     u.tenant_id,
                     u.id,
                     r.id,
-                    CURRENT_TIMESTAMP,
                     CURRENT_TIMESTAMP
                 FROM users u
                 JOIN tenants t ON t.id = u.tenant_id AND t.is_active = true

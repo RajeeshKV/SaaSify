@@ -1,4 +1,5 @@
 using Domain.Entities;
+using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 public interface IAuthService
@@ -13,11 +14,15 @@ public class AuthService : IAuthService
 {
     private readonly IConfiguration _configuration;
     private readonly ApplicationDbContext _context;
+    private readonly IEmailService _emailService;
+    private readonly ILogger<AuthService> _logger;
 
-    public AuthService(IConfiguration configuration, ApplicationDbContext context)
+    public AuthService(IConfiguration configuration, ApplicationDbContext context, IEmailService emailService, ILogger<AuthService> logger)
     {
         _configuration = configuration;
         _context = context;
+        _emailService = emailService;
+        _logger = logger;
     }
 
     public async Task<AuthResult> LoginAsync(LoginRequest request)
@@ -28,6 +33,9 @@ public class AuthService : IAuthService
 
         if (user == null || !PasswordHasher.VerifyPassword(request.Password, user.PasswordHash))
             return AuthResult.Unauthorized("Invalid email, password, or tenant");
+
+        if (!user.IsEmailVerified)
+            return AuthResult.Unauthorized("Please verify your email before logging in");
 
         return AuthResult.Success(await CreateAuthResponseAsync(user));
     }
@@ -48,16 +56,41 @@ public class AuthService : IAuthService
         var user = new User
         {
             TenantId = tenant.Id,
+            Name = request.Name,
             Email = request.Email,
             PasswordHash = PasswordHasher.HashPassword(request.Password),
             Role = "Admin",
-            Tenant = tenant
+            Tenant = tenant,
+            EmailVerificationToken = GenerateSecureToken(),
+            EmailVerificationTokenExpires = DateTime.UtcNow.AddHours(24),
+            IsEmailVerified = false
         };
 
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        return AuthResult.Success(await CreateAuthResponseAsync(user));
+        // Send verification email
+        try
+        {
+            await _emailService.SendEmailVerificationAsync(user.Email, user.EmailVerificationToken, user.Name, tenant.Name);
+            _logger.LogInformation("Verification email sent to {Email}", user.Email);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send verification email to {Email}", user.Email);
+            // Don't fail registration if email fails, but log the error
+        }
+
+        return AuthResult.Success(new AuthResponse(
+            tenant.Id,
+            user.Id,
+            user.Email,
+            user.Role,
+            null, // Token - Don't provide token until email is verified
+            null, // RefreshToken
+            DateTime.UtcNow, // AccessTokenExpiresAt
+            tenant.Name // TenantName
+        ));
     }
 
     public async Task<AuthResult> RefreshAsync(string refreshToken)
@@ -182,6 +215,14 @@ public class AuthService : IAuthService
     {
         var expiryDays = _configuration["JwtSettings:RefreshTokenExpiryDays"];
         return int.TryParse(expiryDays, out var parsed) ? parsed : 7;
+    }
+
+    private static string GenerateSecureToken()
+    {
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        var tokenBytes = new byte[32];
+        rng.GetBytes(tokenBytes);
+        return Convert.ToBase64String(tokenBytes).Replace("+", "-").Replace("/", "_").Replace("=", "");
     }
 }
 

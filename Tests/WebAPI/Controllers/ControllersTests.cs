@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using FluentAssertions;
@@ -8,6 +9,7 @@ using Domain.Entities;
 using Application.Common.Pagination;
 using Tests.Helpers;
 using Tests.Application.Projects.Commands;
+using Infrastructure.Services;
 
 namespace Tests.WebAPI.Controllers;
 
@@ -409,6 +411,8 @@ public class AuthControllerTests
 
     private static AuthController CreateAuthController(ApplicationDbContext context)
     {
-        return new AuthController(new AuthService(CreateConfiguration(), context));
+        var emailService = new Mock<IEmailService>();
+        var logger = new Mock<ILogger<AuthService>>();
+        return new AuthController(new AuthService(CreateConfiguration(), context, emailService.Object, logger.Object));
     }
 }

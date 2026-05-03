@@ -4,6 +4,7 @@ using Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Infrastructure.MultiTenancy;
 
 namespace WebAPI.Controllers
 {
@@ -15,12 +16,79 @@ namespace WebAPI.Controllers
         private readonly IOrderEventPublisher _orderEventPublisher;
         private readonly IOrderServiceClient _orderServiceClient;
         private readonly ILogger<OrdersController> _logger;
+        private readonly IStripePaymentService _stripePaymentService;
+        private readonly OrderWebSocketService _webSocketService;
+        private readonly ITenantContext _tenantContext;
 
-        public OrdersController(IOrderEventPublisher orderEventPublisher, IOrderServiceClient orderServiceClient, ILogger<OrdersController> logger)
+        public OrdersController(
+            IOrderEventPublisher orderEventPublisher, 
+            IOrderServiceClient orderServiceClient, 
+            ILogger<OrdersController> logger,
+            IStripePaymentService stripePaymentService,
+            OrderWebSocketService webSocketService,
+            ITenantContext tenantContext)
         {
             _orderEventPublisher = orderEventPublisher;
             _orderServiceClient = orderServiceClient;
             _logger = logger;
+            _stripePaymentService = stripePaymentService;
+            _webSocketService = webSocketService;
+            _tenantContext = tenantContext;
+        }
+
+        [HttpPost("create-payment-intent")]
+        public async Task<IActionResult> CreatePaymentIntent([FromBody] CreatePaymentIntentRequest request)
+        {
+            try
+            {
+                var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+                var userIdClaim = User.FindFirst("UserId")?.Value;
+                var emailClaim = User.FindFirst("email")?.Value;
+
+                if (!int.TryParse(tenantIdClaim, out var tenantId) || !int.TryParse(userIdClaim, out var userId))
+                {
+                    return BadRequest("Invalid tenant or user ID in token");
+                }
+
+                var metadata = new Dictionary<string, string>
+                {
+                    { "tenant_id", tenantId.ToString() },
+                    { "user_id", userId.ToString() },
+                    { "customer_email", request.CustomerEmail ?? emailClaim }
+                };
+
+                var paymentRequest = new PaymentIntentRequest
+                {
+                    Amount = request.Amount,
+                    Currency = request.Currency ?? "usd",
+                    CustomerEmail = request.CustomerEmail ?? emailClaim,
+                    TenantId = tenantId,
+                    UserId = userId,
+                    PaymentType = "order",
+                    Metadata = metadata
+                };
+
+                var paymentIntent = await _stripePaymentService.CreatePaymentIntentAsync(paymentRequest);
+
+                _logger.LogInformation("Payment intent created: TenantId={TenantId}, UserId={UserId}, Amount={Amount}, PaymentIntentId={PaymentIntentId}", 
+                    tenantId, userId, request.Amount, paymentIntent.PaymentIntentId);
+
+                return Ok(new
+                {
+                    ClientSecret = paymentIntent.ClientSecret,
+                    PaymentIntentId = paymentIntent.PaymentIntentId,
+                    Amount = request.Amount,
+                    Currency = request.Currency ?? "usd",
+                    Status = paymentIntent.Status,
+                    TenantId = tenantId,
+                    UserId = userId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create payment intent");
+                return StatusCode(500, "Internal server error");
+            }
         }
 
         [HttpPost]
@@ -69,6 +137,14 @@ namespace WebAPI.Controllers
                         Warning = "Order processing may be delayed due to message queue issues"
                     });
                 }
+
+                // Send WebSocket notification for order creation
+                await _webSocketService.NotifyOrderCreated(
+                    tenantId: tenantId,
+                    orderId: 0, // Will be assigned by OrderService
+                    amount: request.Amount,
+                    customerEmail: request.CustomerEmail ?? $"user-{userId}@tenant-{tenantId}.com"
+                );
 
                 return Ok(new
                 {
@@ -216,6 +292,14 @@ namespace WebAPI.Controllers
     public record CreateOrderRequest(
         decimal Amount,
         string? Description,
+        string? CustomerEmail,
+        string? PaymentIntentId,
+        string? PaymentMethod
+    );
+
+    public record CreatePaymentIntentRequest(
+        decimal Amount,
+        string? Currency = "usd",
         string? CustomerEmail
     );
 

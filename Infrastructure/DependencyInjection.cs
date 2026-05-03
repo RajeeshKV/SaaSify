@@ -32,7 +32,8 @@ public static class DependencyInjection
         services.AddTransient<TenantDbInterceptor>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<ITenantSettingsService, TenantSettingsService>();
-        services.AddScoped<IStripeService, StripeService>();
+        services.AddScoped<IStripePaymentService, UnifiedStripePaymentService>();
+        services.AddScoped<IStripeService, StripeService>(); // Keep for backward compatibility
         services.AddScoped<RBACMigrationService>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -78,6 +79,9 @@ public static class DependencyInjection
         
         // Add OrderService Client
         services.AddHttpClient<IOrderServiceClient, OrderServiceClient>();
+        
+        // Add Order WebSocket Service
+        services.AddSingleton<OrderWebSocketService>();
 
         return services;
     }

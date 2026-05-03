@@ -21,6 +21,7 @@ builder.Host.UseSerilog();
 
 // Add services to the container
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSignalR();
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -177,6 +178,7 @@ app.UseAuthorization();
 app.MapHealthChecks("/health");
 app.MapGet("/", () => Results.Redirect("/swagger"));
 app.MapControllers();
+app.MapHub<WebAPI.Hubs.OrderNotificationHub>("/orderNotifications");
 
 try
 {

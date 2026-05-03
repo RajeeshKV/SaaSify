@@ -72,6 +72,31 @@ namespace Infrastructure.Services
             return session.Url;
         }
 
+        public async Task<PaymentIntentResponse> CreatePaymentIntentAsync(decimal amount, string currency = "usd", Dictionary<string, string> metadata = null)
+        {
+            var options = new PaymentIntentCreateOptions
+            {
+                Amount = (long)(amount * 100), // Convert to cents
+                Currency = currency,
+                PaymentMethodTypes = new List<string> { "card" },
+                Metadata = metadata ?? new Dictionary<string, string>(),
+                AutomaticPaymentMethods = new PaymentIntentAutomaticPaymentMethodsOptions
+                {
+                    Enabled = true
+                }
+            };
+
+            var service = new PaymentIntentService();
+            var paymentIntent = await service.CreateAsync(options);
+
+            return new PaymentIntentResponse
+            {
+                ClientSecret = paymentIntent.ClientSecret,
+                PaymentIntentId = paymentIntent.Id,
+                Status = paymentIntent.Status
+            };
+        }
+
         public async Task ProcessWebhookAsync(string jsonBody, string signature)
         {
             try
@@ -155,11 +180,12 @@ namespace Infrastructure.Services
             var plans = _configuration.GetSection("Subscription:Plans").GetChildren();
             foreach (var planSection in plans)
             {
-                if (planSection.Key == planId)
+                var planName = planSection["Name"];
+                if (planName == planId)
                 {
                     var plan = new PlanConfiguration
                     {
-                        Name = planSection["Name"] ?? "",
+                        Name = planName ?? "",
                         Description = planSection["Description"] ?? "",
                         MonthlyPrice = decimal.Parse(planSection["MonthlyPrice"] ?? "0"),
                         RateLimitPerMinute = int.Parse(planSection["RateLimitPerMinute"] ?? "100"),
@@ -181,6 +207,14 @@ namespace Infrastructure.Services
     public interface IStripeService
     {
         Task<string> CreateCheckoutSessionAsync(int tenantId, string planId);
+        Task<PaymentIntentResponse> CreatePaymentIntentAsync(decimal amount, string currency = "usd", Dictionary<string, string> metadata = null);
         Task ProcessWebhookAsync(string jsonBody, string signature);
+    }
+
+    public class PaymentIntentResponse
+    {
+        public string ClientSecret { get; set; }
+        public string PaymentIntentId { get; set; }
+        public string Status { get; set; }
     }
 }

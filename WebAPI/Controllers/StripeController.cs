@@ -7,11 +7,11 @@ using Infrastructure.Services;
 [Route("api/[controller]")]
 public class StripeController : ControllerBase
 {
-    private readonly IStripeService _stripeService;
+    private readonly IStripePaymentService _stripePaymentService;
 
-    public StripeController(IStripeService stripeService)
+    public StripeController(IStripePaymentService stripePaymentService)
     {
-        _stripeService = stripeService;
+        _stripePaymentService = stripePaymentService;
     }
 
     [HttpPost("create-checkout-session")]
@@ -26,8 +26,16 @@ public class StripeController : ControllerBase
 
         try
         {
-            var checkoutUrl = await _stripeService.CreateCheckoutSessionAsync(tenantId, request.PlanId);
-            return Ok(new { checkoutUrl });
+            var checkoutRequest = new CheckoutSessionRequest
+            {
+                TenantId = tenantId,
+                PlanId = request.PlanId,
+                CustomerEmail = request.CustomerEmail,
+                Currency = "usd"
+            };
+
+            var checkoutSession = await _stripePaymentService.CreateCheckoutSessionAsync(checkoutRequest);
+            return Ok(new { checkoutUrl = checkoutSession.CheckoutUrl });
         }
         catch (Exception ex)
         {
@@ -43,7 +51,7 @@ public class StripeController : ControllerBase
 
         try
         {
-            await _stripeService.ProcessWebhookAsync(json, signature);
+            await _stripePaymentService.ProcessWebhookAsync(json, signature);
             return Ok();
         }
         catch (Exception ex)
@@ -67,4 +75,4 @@ public class StripeController : ControllerBase
     }
 }
 
-public record CreateCheckoutSessionRequest(string PlanId);
+public record CreateCheckoutSessionRequest(string PlanId, string? CustomerEmail = null);

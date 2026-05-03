@@ -133,5 +133,15 @@ public class ApplicationDbContext : DbContext
             .WithMany()
             .HasForeignKey(s => s.TenantId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Configure TenantSettings
+        modelBuilder.Entity<TenantSettings>()
+            .HasKey(ts => ts.TenantId);
+
+        modelBuilder.Entity<TenantSettings>()
+            .HasOne(ts => ts.Tenant)
+            .WithOne()
+            .HasForeignKey<TenantSettings>(ts => ts.TenantId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

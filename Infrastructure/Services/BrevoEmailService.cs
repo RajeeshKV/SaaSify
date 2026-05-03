@@ -44,6 +44,29 @@ public class BrevoEmailService : IEmailService
         _httpClient.BaseAddress = new Uri(_baseUrl);
         _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         _httpClient.DefaultRequestHeaders.Add("api-key", _apiKey);
+        
+        // Test API key on startup
+        _ = Task.Run(TestApiKeyAsync);
+    }
+
+    private async Task TestApiKeyAsync()
+    {
+        try
+        {
+            var testResponse = await _httpClient.GetAsync("/accounts");
+            if (testResponse.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("Brevo API key is valid and account is accessible");
+            }
+            else
+            {
+                _logger.LogWarning("Brevo API key validation failed: {StatusCode}", testResponse.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to validate Brevo API key");
+        }
     }
 
     public async Task SendEmailVerificationAsync(string email, string verificationToken, string userName = null, string tenantName = null)
@@ -53,7 +76,7 @@ public class BrevoEmailService : IEmailService
         var emailData = new
         {
             templateId = _emailVerificationTemplateId,
-            sender = new { name = "SaaSify", email = "noreply@saasify.com" },
+            sender = new { name = "SaaSify", email = "no-reply@rajeesh.online" },
             to = new[] { new { email } },
             @params = new
             {
@@ -73,7 +96,7 @@ public class BrevoEmailService : IEmailService
         var emailData = new
         {
             templateId = _userInvitationTemplateId,
-            sender = new { name = "SaaSify", email = "noreply@saasify.com" },
+            sender = new { name = "SaaSify", email = "no-reply@rajeesh.online" },
             to = new[] { new { email } },
             @params = new
             {
@@ -93,7 +116,7 @@ public class BrevoEmailService : IEmailService
         var emailData = new
         {
             templateId = _welcomeEmailTemplateId,
-            sender = new { name = "SaaSify", email = "noreply@saasify.com" },
+            sender = new { name = "SaaSify", email = "no-reply@rajeesh.online" },
             to = new[] { new { email } },
             @params = new
             {
@@ -127,14 +150,17 @@ public class BrevoEmailService : IEmailService
             else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogError("Failed to send email using template. Status: {StatusCode}, Error: {Error}", 
-                    response.StatusCode, errorContent);
+                _logger.LogError("Failed to send email using template. Status: {StatusCode}, Headers: {Headers}, Error: {Error}", 
+                    response.StatusCode,
+                    string.Join(", ", response.Headers.Select(h => $"{h.Key}={string.Join(",", h.Value)}")),
+                    errorContent);
                 throw new InvalidOperationException($"Failed to send email: {errorContent}");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending email using template");
+            var errorContent = ex.Message + Environment.NewLine + ex.StackTrace;
+            _logger.LogError("Error sending email using template. Error: {Error}", errorContent);
             throw;
         }
     }
@@ -159,7 +185,7 @@ public class BrevoEmailService : IEmailService
                 // Create direct email content
                 var directEmailData = new
                 {
-                    sender = new { name = "SaaSify", email = "noreply@saasify.com" },
+                    sender = new { name = "SaaSify", email = "no-reply@rajeesh.online" },
                     to = new[] { new { email = recipientEmail } },
                     subject = "Set Your Password - SaaSify",
                     htmlContent = $@"
@@ -187,7 +213,10 @@ public class BrevoEmailService : IEmailService
                 else
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogError("Failed to send direct email. Status: {StatusCode}, Error: {Error}", response.StatusCode, errorContent);
+                    _logger.LogError("Failed to send direct email. Status: {StatusCode}, Headers: {Headers}, Error: {Error}", 
+                        response.StatusCode, 
+                        string.Join(", ", response.Headers.Select(h => $"{h.Key}={string.Join(",", h.Value)}")),
+                        errorContent);
                     throw new InvalidOperationException($"Failed to send direct email: {errorContent}");
                 }
             }

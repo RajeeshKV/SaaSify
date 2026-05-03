@@ -6,13 +6,11 @@ public class TenantMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<TenantMiddleware> _logger;
-    private readonly IServiceProvider _serviceProvider;
 
-    public TenantMiddleware(RequestDelegate next, ILogger<TenantMiddleware> logger, IServiceProvider serviceProvider)
+    public TenantMiddleware(RequestDelegate next, ILogger<TenantMiddleware> logger)
     {
         _next = next;
         _logger = logger;
-        _serviceProvider = serviceProvider;
     }
 
     public async Task Invoke(HttpContext context, ITenantContext tenantContext, ITenantContextService tenantContextService)
@@ -55,8 +53,7 @@ public class TenantMiddleware
         }
 
         // Validate tenant exists and is active
-        using var scope = _serviceProvider.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var dbContext = context.RequestServices.GetRequiredService<ApplicationDbContext>();
         
         var tenant = await dbContext.Tenants
             .IgnoreQueryFilters()

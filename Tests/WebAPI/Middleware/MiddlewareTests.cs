@@ -78,8 +78,7 @@ public class TenantMiddlewareTests
         // Arrange
         var mockNext = new Mock<RequestDelegate>();
         var mockLogger = new Mock<ILogger<TenantMiddleware>>();
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var middleware = new TenantMiddleware(mockNext.Object, mockLogger.Object, mockServiceProvider.Object);
+                var middleware = new TenantMiddleware(mockNext.Object, mockLogger.Object);
         var mockTenantContext = new Mock<ITenantContext>();
         var mockTenantContextService = new Mock<ITenantContextService>();
 
@@ -100,8 +99,7 @@ public class TenantMiddlewareTests
         // Arrange
         var mockNext = new Mock<RequestDelegate>();
         var mockLogger = new Mock<ILogger<TenantMiddleware>>();
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var middleware = new TenantMiddleware(mockNext.Object, mockLogger.Object, mockServiceProvider.Object);
+                var middleware = new TenantMiddleware(mockNext.Object, mockLogger.Object);
         var mockTenantContext = new Mock<ITenantContext>();
         var mockTenantContextService = new Mock<ITenantContextService>();
 
@@ -122,8 +120,7 @@ public class TenantMiddlewareTests
         // Arrange
         var mockNext = new Mock<RequestDelegate>();
         var mockLogger = new Mock<ILogger<TenantMiddleware>>();
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var middleware = new TenantMiddleware(mockNext.Object, mockLogger.Object, mockServiceProvider.Object);
+                var middleware = new TenantMiddleware(mockNext.Object, mockLogger.Object);
         var mockTenantContext = new Mock<ITenantContext>();
         var mockTenantContextService = new Mock<ITenantContextService>();
 
@@ -143,8 +140,7 @@ public class TenantMiddlewareTests
         // Arrange
         var mockNext = new Mock<RequestDelegate>();
         var mockLogger = new Mock<ILogger<TenantMiddleware>>();
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var middleware = new TenantMiddleware(mockNext.Object, mockLogger.Object, mockServiceProvider.Object);
+                var middleware = new TenantMiddleware(mockNext.Object, mockLogger.Object);
         var mockTenantContext = new Mock<ITenantContext>();
         var mockTenantContextService = new Mock<ITenantContextService>();
 
@@ -170,8 +166,7 @@ public class TenantMiddlewareTests
         // Arrange
         var mockNext = new Mock<RequestDelegate>();
         var mockLogger = new Mock<ILogger<TenantMiddleware>>();
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var middleware = new TenantMiddleware(mockNext.Object, mockLogger.Object, mockServiceProvider.Object);
+                var middleware = new TenantMiddleware(mockNext.Object, mockLogger.Object);
         var mockTenantContext = new Mock<ITenantContext>();
         var mockTenantContextService = new Mock<ITenantContextService>();
 

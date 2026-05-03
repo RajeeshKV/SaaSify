@@ -5,7 +5,7 @@ using Infrastructure.Services;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize("tenant.admin")]
+[Authorize]
 public class RBACMigrationController : ControllerBase
 {
     private readonly RBACMigrationService _migrationService;

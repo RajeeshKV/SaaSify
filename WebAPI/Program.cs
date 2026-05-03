@@ -113,8 +113,8 @@ builder.Services.AddRateLimiter(options =>
 {
     options.AddPolicy<string>("tenant", context =>
     {
-        var tenantIdClaim = context.User?.FindFirst("TenantId")?.Value;
-        var partitionKey = string.IsNullOrEmpty(tenantIdClaim) ? "anonymous" : tenantIdClaim;
+        var tenantId = context.RequestServices.GetRequiredService<ITenantContext>().TenantId;
+        var partitionKey = tenantId > 0 ? $"tenant-{tenantId}" : "anonymous";
         
         // For now, use standard rate limiting. Plan-based limits can be implemented
         // with a custom rate limiter or middleware that checks subscription plans
@@ -128,8 +128,24 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 10
             });
     });
-});
 
+    // Add DefaultPolicy for UsersController
+    options.AddPolicy<string>("DefaultPolicy", context =>
+    {
+        var tenantId = context.RequestServices.GetRequiredService<ITenantContext>().TenantId;
+        var partitionKey = tenantId > 0 ? $"tenant-{tenantId}" : "anonymous";
+        
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 50, // Lower limit for user management operations
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 5
+            });
+    });
+});
 
 // Register handlers
 builder.Services.AddScoped<GetProjectByIdQueryHandler>();

@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi.Models;
 using System.Threading.RateLimiting;
 using Application.Common.Interfaces;
+using WebAPI.Authorization;
+using Microsoft.AspNetCore.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,6 +68,45 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 // Add JWT authentication
 builder.Services.AddJwtAuthentication(builder.Configuration);
+
+// Add RBAC authorization
+builder.Services.AddAuthorization(options =>
+{
+    // Default policy - require authentication
+    options.DefaultPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .AddRequirements(new PermissionRequirement("tenant.access"))
+        .Build();
+
+    // Add tenant-specific permission policies
+    options.AddPolicy("project.read", policy =>
+        policy.RequireAuthenticatedUser()
+        .RequireClaim("permission", "project.read"));
+    
+    options.AddPolicy("project.write", policy =>
+        policy.RequireAuthenticatedUser()
+        .RequireClaim("permission", "project.write"));
+    
+    options.AddPolicy("project.delete", policy =>
+        policy.RequireAuthenticatedUser()
+        .RequireClaim("permission", "project.delete"));
+    
+    options.AddPolicy("user.manage", policy =>
+        policy.RequireAuthenticatedUser()
+        .RequireClaim("permission", "user.manage"));
+    
+    options.AddPolicy("subscription.manage", policy =>
+        policy.RequireAuthenticatedUser()
+        .RequireClaim("permission", "subscription.manage"));
+    
+    options.AddPolicy("tenant.admin", policy =>
+        policy.RequireAuthenticatedUser()
+        .RequireClaim("permission", "tenant.admin"));
+});
+
+// Add custom authorization policy provider and handlers
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, TenantAuthorizationPolicyProvider>();
+builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
 // Add rate limiting
 builder.Services.AddRateLimiter(options =>

@@ -5,20 +5,29 @@ using Microsoft.IdentityModel.Tokens;
 
 public static class JwtTokenGenerator
 {
-    public static string GenerateToken(int userId, string email, int tenantId, int tokenVersion, string secretKey, string issuer, string audience, int expiryMinutes)
+    public static string GenerateToken(int userId, string email, int tenantId, int tokenVersion, List<string> permissions, string secretKey, string issuer, string audience, int expiryMinutes)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(secretKey);
 
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.Email, email),
+            new Claim("TenantId", tenantId.ToString()),
+            new Claim("TokenVersion", tokenVersion.ToString()),
+            new Claim("UserId", userId.ToString())
+        };
+
+        // Add permission claims
+        foreach (var permission in permissions)
+        {
+            claims.Add(new Claim("permission", permission));
+        }
+
         var tokenDescriptor = new SecurityTokenDescriptor
         {
-            Subject = new ClaimsIdentity(new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-                new Claim(ClaimTypes.Email, email),
-                new Claim("TenantId", tenantId.ToString()),
-                new Claim("TokenVersion", tokenVersion.ToString())
-            }),
+            Subject = new ClaimsIdentity(claims),
             Expires = DateTime.UtcNow.AddMinutes(expiryMinutes),
             Issuer = issuer,
             Audience = audience,

@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Application.Common.Interfaces;
 using Application.Common.Configuration;
+using Infrastructure.Interceptors;
+using Infrastructure.Services;
 
 public static class DependencyInjection
 {
@@ -11,13 +13,27 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"))
-                .UseSnakeCaseNamingConvention());
+        services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
+                {
+                    var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
+                        ?? configuration.GetConnectionString("DefaultConnection");
+                    
+                    options.UseNpgsql(
+                        connectionString,
+                        b => b.MigrationsAssembly("Infrastructure"))
+                        .UseSnakeCaseNamingConvention();
+                    
+                    // Add tenant interceptor for production RLS
+                    options.AddInterceptors(serviceProvider.GetRequiredService<TenantDbInterceptor>());
+                });
 
         services.AddScoped<ITenantContext, TenantContext>();
         services.AddScoped<ITenantContextService, TenantContextService>();
+        services.AddTransient<TenantDbInterceptor>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
+        services.AddScoped<ITenantSettingsService, TenantSettingsService>();
+        services.AddScoped<IStripeService, StripeService>();
+        services.AddScoped<RBACMigrationService>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<ICacheService, InMemoryCacheService>();
@@ -47,6 +63,13 @@ public static class DependencyInjection
         }
         
         services.AddSingleton(subscriptionConfig);
+
+        // Configure RBAC migration settings
+        var rbacConfig = new RBACMigrationConfiguration();
+        var rbacSection = configuration.GetSection("RBACMigration");
+        
+        configuration.Bind("RBACMigration", rbacConfig);
+        services.AddSingleton(rbacConfig);
 
         return services;
     }

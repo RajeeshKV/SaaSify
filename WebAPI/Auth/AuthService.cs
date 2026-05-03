@@ -113,7 +113,16 @@ public class AuthService : IAuthService
 
     private async Task<AuthResponse> CreateAuthResponseAsync(User user, RefreshToken previousRefreshToken = null)
     {
-        var accessToken = GenerateToken(user.Id, user.Email, user.TenantId, user.TokenVersion);
+        // Fetch user permissions for JWT claims
+        var permissions = await _context.UserRoles
+            .IgnoreQueryFilters()
+            .Where(ur => ur.UserId == user.Id && ur.TenantId == user.TenantId)
+            .SelectMany(ur => ur.Role.RolePermissions)
+            .Select(rp => rp.Permission.Name)
+            .Distinct()
+            .ToListAsync();
+
+        var accessToken = GenerateToken(user.Id, user.Email, user.TenantId, user.TokenVersion, permissions);
         var refreshToken = RefreshTokenService.GenerateRefreshToken();
         var refreshTokenHash = RefreshTokenService.HashRefreshToken(refreshToken);
 
@@ -147,7 +156,7 @@ public class AuthService : IAuthService
         );
     }
 
-    private string GenerateToken(int userId, string email, int tenantId, int tokenVersion)
+    private string GenerateToken(int userId, string email, int tenantId, int tokenVersion, List<string> permissions)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
         Console.WriteLine("GEN KEY: " + jwtSettings["SecretKey"]);
@@ -156,6 +165,7 @@ public class AuthService : IAuthService
             email,
             tenantId,
             tokenVersion,
+            permissions,
             jwtSettings["SecretKey"],
             jwtSettings["Issuer"],
             jwtSettings["Audience"],

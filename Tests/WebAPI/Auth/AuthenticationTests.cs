@@ -17,19 +17,23 @@ public class JwtTokenGeneratorTests
     public void GenerateToken_IncludesUserTenantAndEmailClaims()
     {
         var token = JwtTokenGenerator.GenerateToken(
-            userId: 5,
-            email: "user@example.com",
-            tenantId: 9,
+            userId: 1,
+            email: "test@example.com",
+            tenantId: 1,
             tokenVersion: 1,
-            secretKey: "test-secret-key-that-is-at-least-32-characters-long",
-            issuer: "TestIssuer",
-            audience: "TestAudience",
+            permissions: new List<string> { "project.read", "project.write" },
+            secretKey: "test_secret_key",
+            issuer: "test_issuer",
+            audience: "test_audience",
             expiryMinutes: 60);
 
         var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
 
-        jwt.Issuer.Should().Be("TestIssuer");
-        jwt.Audiences.Should().Contain("TestAudience");
+        jwt.Issuer.Should().Be("test_issuer");
+        jwt.Audiences.Should().Contain("test_audience");
+        jwt.Claims.Should().Contain(c => c.Type == ClaimTypes.NameIdentifier && c.Value == "1");
+        jwt.Claims.Should().Contain(c => c.Type == ClaimTypes.Email && c.Value == "test@example.com");
+        jwt.Claims.Should().Contain(c => c.Type == "TenantId" && c.Value == "1");
         jwt.Claims.Should().Contain(c => c.Type == ClaimTypes.NameIdentifier && c.Value == "5");
         jwt.Claims.Should().Contain(c => c.Type == ClaimTypes.Email && c.Value == "user@example.com");
         jwt.Claims.Should().Contain(c => c.Type == "TenantId" && c.Value == "9");

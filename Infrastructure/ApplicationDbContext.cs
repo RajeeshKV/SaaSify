@@ -16,6 +16,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
+    public DbSet<TenantSettings> TenantSettings => Set<TenantSettings>();
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ITenantContext tenantContext)
         : base(options)
@@ -49,6 +50,9 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Subscription>()
             .HasQueryFilter(s => s.TenantId == _tenantContext.TenantId);
+
+        modelBuilder.Entity<TenantSettings>()
+            .HasQueryFilter(ts => ts.TenantId == _tenantContext.TenantId);
 
         // Configure relationships
         modelBuilder.Entity<User>()

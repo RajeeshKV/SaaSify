@@ -22,7 +22,7 @@ public class UpdateProjectCommandHandler
             throw new Exception("Project not found");
 
         project.Name = request.Name;
-        _unitOfWork.Projects.Update(project);
+        await _unitOfWork.Projects.UpdateAsync(project);
         await _unitOfWork.SaveChangesAsync();
 
         return project;

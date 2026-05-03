@@ -5,6 +5,7 @@ using Moq;
 using Xunit;
 using FluentAssertions;
 using Domain.Entities;
+using Application.Common.Pagination;
 using Tests.Helpers;
 using Tests.Application.Projects.Commands;
 
@@ -16,7 +17,7 @@ public class ProjectsControllerTests
     public async Task GetById_WithValidId_ReturnsOkWithProject()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
         var getByIdHandler = new GetProjectByIdQueryHandler(unitOfWork);
         var getAllHandler = new GetAllProjectsQueryHandler(unitOfWork);
@@ -45,7 +46,7 @@ public class ProjectsControllerTests
     public async Task GetById_WithInvalidId_ReturnsNotFound()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
         var getByIdHandler = new GetProjectByIdQueryHandler(unitOfWork);
         var getAllHandler = new GetAllProjectsQueryHandler(unitOfWork);
@@ -70,7 +71,7 @@ public class ProjectsControllerTests
     public async Task GetAll_ReturnsOkWithProjects()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
         var getByIdHandler = new GetProjectByIdQueryHandler(unitOfWork);
         var getAllHandler = new GetAllProjectsQueryHandler(unitOfWork);
@@ -90,15 +91,15 @@ public class ProjectsControllerTests
         // Assert
         result.Should().BeOfType<OkObjectResult>();
         var okResult = (result as OkObjectResult)!;
-        var projects = (okResult.Value as IEnumerable<Project>)!;
-        projects.Should().HaveCount(1);
+        var paginatedResponse = (okResult.Value as PaginatedResponse<Project>)!;
+        paginatedResponse.Data.Should().HaveCount(1);
     }
 
     [Fact]
     public async Task Create_WithValidCommand_ReturnsCreatedAtAction()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
         var getByIdHandler = new GetProjectByIdQueryHandler(unitOfWork);
         var getAllHandler = new GetAllProjectsQueryHandler(unitOfWork);
@@ -127,7 +128,7 @@ public class ProjectsControllerTests
     public async Task Update_WithValidCommand_ReturnsOk()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
         var getByIdHandler = new GetProjectByIdQueryHandler(unitOfWork);
         var getAllHandler = new GetAllProjectsQueryHandler(unitOfWork);
@@ -155,7 +156,7 @@ public class ProjectsControllerTests
     public async Task Update_WithRouteId_OverridesBodyId()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
         var getByIdHandler = new GetProjectByIdQueryHandler(unitOfWork);
         var getAllHandler = new GetAllProjectsQueryHandler(unitOfWork);
@@ -183,7 +184,7 @@ public class ProjectsControllerTests
     public async Task Delete_WithValidId_ReturnsNoContent()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
         var getByIdHandler = new GetProjectByIdQueryHandler(unitOfWork);
         var getAllHandler = new GetAllProjectsQueryHandler(unitOfWork);
@@ -211,7 +212,7 @@ public class AuthControllerTests
     public async Task Login_WithValidRequest_ReturnsOkWithToken()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var user = context.Users.IgnoreQueryFilters().Single();
         user.Email = "user@example.com";
         user.PasswordHash = PasswordHasher.HashPassword("password123");
@@ -238,7 +239,7 @@ public class AuthControllerTests
     public async Task Login_WithInvalidPassword_ReturnsUnauthorized()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var user = context.Users.IgnoreQueryFilters().Single();
         user.Email = "user@example.com";
         user.PasswordHash = PasswordHasher.HashPassword("password123");
@@ -297,7 +298,7 @@ public class AuthControllerTests
     public async Task Register_WithExistingEmail_ReturnsConflict()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var controller = CreateAuthController(context);
         var request = new RegisterRequest
         {
@@ -317,7 +318,7 @@ public class AuthControllerTests
     public async Task Refresh_WithValidRefreshToken_RotatesToken()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var user = context.Users.IgnoreQueryFilters().Single();
         user.Email = "user@example.com";
         user.PasswordHash = PasswordHasher.HashPassword("password123");
@@ -367,7 +368,7 @@ public class AuthControllerTests
     public async Task Revoke_WithValidRefreshToken_RevokesToken()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var user = context.Users.IgnoreQueryFilters().Single();
         user.Email = "user@example.com";
         user.PasswordHash = PasswordHasher.HashPassword("password123");

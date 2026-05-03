@@ -14,7 +14,7 @@ public class ApplicationDbContextTests
         var tenantContext = new MockTenantContext();
         tenantContext.SetTenantId(1);
         await using var context = CreateContext(tenantContext);
-        SeedMultiTenantData(context);
+        await SeedMultiTenantData(context);
 
         var projects = await context.Projects.ToListAsync();
 
@@ -29,7 +29,7 @@ public class ApplicationDbContextTests
         var tenantContext = new MockTenantContext();
         tenantContext.SetTenantId(2);
         await using var context = CreateContext(tenantContext);
-        SeedMultiTenantData(context);
+        await SeedMultiTenantData(context);
 
         var users = await context.Users.ToListAsync();
 
@@ -44,7 +44,7 @@ public class ApplicationDbContextTests
         var tenantContext = new MockTenantContext();
         tenantContext.SetTenantId(1);
         await using var context = CreateContext(tenantContext);
-        SeedMultiTenantData(context);
+        await SeedMultiTenantData(context);
 
         var tenantOneProjects = await context.Projects.Select(p => p.Name).ToListAsync();
         tenantContext.SetTenantId(2);
@@ -63,7 +63,7 @@ public class ApplicationDbContextTests
         return new ApplicationDbContext(options, tenantContext);
     }
 
-    private static void SeedMultiTenantData(ApplicationDbContext context)
+    private static async Task SeedMultiTenantData(ApplicationDbContext context)
     {
         var tenant1 = new Tenant { Id = 1, Name = "Tenant 1" };
         var tenant2 = new Tenant { Id = 2, Name = "Tenant 2" };
@@ -75,6 +75,6 @@ public class ApplicationDbContextTests
         context.Users.AddRange(
             new User { Id = 1, TenantId = 1, Email = "tenant1@example.com", PasswordHash = "hash", Role = "Admin", Tenant = tenant1 },
             new User { Id = 2, TenantId = 2, Email = "tenant2@example.com", PasswordHash = "hash", Role = "Member", Tenant = tenant2 });
-        context.SaveChanges();
+        await context.SaveChangesAsync();
     }
 }

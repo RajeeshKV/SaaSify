@@ -35,19 +35,22 @@ public class Repository<T> : IRepository<T> where T : class
         await _context.Set<T>().AddRangeAsync(entities);
     }
 
-    public void Update(T entity)
+    public Task UpdateAsync(T entity)
     {
         _context.Set<T>().Update(entity);
+        return Task.CompletedTask;
     }
 
-    public void Delete(T entity)
+    public Task DeleteAsync(T entity)
     {
         _context.Set<T>().Remove(entity);
+        return Task.CompletedTask;
     }
 
-    public void DeleteRange(IEnumerable<T> entities)
+    public Task DeleteRangeAsync(IEnumerable<T> entities)
     {
         _context.Set<T>().RemoveRange(entities);
+        return Task.CompletedTask;
     }
 
     public async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate)

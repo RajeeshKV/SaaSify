@@ -23,10 +23,10 @@ public class GetAllProjectsQueryHandler
 
     public async Task<PaginatedResponse<Project>> Handle(GetAllProjectsQuery request)
     {
-        var projects = await _unitOfWork.Projects.GetAllAsync();
-        var totalItems = projects.Count();
+        var allProjects = await _unitOfWork.Projects.GetAllAsync();
+        var totalItems = allProjects.Count();
         
-        var paginatedProjects = projects
+        var paginatedProjects = allProjects
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToList();

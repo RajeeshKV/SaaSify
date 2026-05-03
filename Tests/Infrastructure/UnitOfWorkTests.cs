@@ -11,7 +11,7 @@ public class UnitOfWorkTests
     public async Task SaveChangesAsync_WithValidChanges_SavesSuccessfully()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
 
         var newProject = new Project { Id = 2, TenantId = 1, Name = "New Project" };
@@ -25,10 +25,10 @@ public class UnitOfWorkTests
     }
 
     [Fact]
-    public void Tenants_Property_ReturnsRepositoryInstance()
+    public async Task Tenants_Property_ReturnsRepositoryInstance()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
 
         // Act
@@ -40,10 +40,10 @@ public class UnitOfWorkTests
     }
 
     [Fact]
-    public void Users_Property_ReturnsRepositoryInstance()
+    public async Task Users_Property_ReturnsRepositoryInstance()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
 
         // Act
@@ -55,10 +55,10 @@ public class UnitOfWorkTests
     }
 
     [Fact]
-    public void Projects_Property_ReturnsRepositoryInstance()
+    public async Task Projects_Property_ReturnsRepositoryInstance()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
 
         // Act
@@ -73,7 +73,7 @@ public class UnitOfWorkTests
     public async Task BeginTransactionAsync_StartsTransaction()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
 
         // Act
@@ -88,7 +88,7 @@ public class UnitOfWorkTests
     public async Task CommitTransactionAsync_CommitsChanges()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
 
         var newProject = new Project { Id = 2, TenantId = 1, Name = "New Project" };
@@ -107,7 +107,7 @@ public class UnitOfWorkTests
     public async Task RollbackTransactionAsync_RollsBackChanges()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
 
         // Act & Assert - should not throw
@@ -115,10 +115,10 @@ public class UnitOfWorkTests
     }
 
     [Fact]
-    public void Dispose_DisposesResources()
+    public async Task Dispose_DisposesResources()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
 
         // Act

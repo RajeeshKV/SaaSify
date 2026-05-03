@@ -11,7 +11,7 @@ public class RepositoryTests
     public async Task GetByIdAsync_WithValidId_ReturnsEntity()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var repository = new Repository<Project>(context);
 
         // Act
@@ -27,7 +27,7 @@ public class RepositoryTests
     public async Task GetByIdAsync_WithInvalidId_ReturnsNull()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var repository = new Repository<Project>(context);
 
         // Act
@@ -41,9 +41,9 @@ public class RepositoryTests
     public async Task GetAllAsync_ReturnsAllEntities()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         context.Projects.Add(new Project { Id = 2, TenantId = 1, Name = "Project 2" });
-        context.SaveChanges();
+        await context.SaveChangesAsync();
 
         var repository = new Repository<Project>(context);
 
@@ -58,9 +58,9 @@ public class RepositoryTests
     public async Task FindAsync_WithValidPredicate_ReturnsMatchingEntities()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         context.Projects.Add(new Project { Id = 2, TenantId = 1, Name = "Another Project" });
-        context.SaveChanges();
+        await context.SaveChangesAsync();
 
         var repository = new Repository<Project>(context);
 
@@ -76,7 +76,7 @@ public class RepositoryTests
     public async Task AddAsync_WithValidEntity_AddsEntity()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var repository = new Repository<Project>(context);
         var newProject = new Project { Id = 2, TenantId = 1, Name = "New Project" };
 
@@ -94,7 +94,7 @@ public class RepositoryTests
     public async Task AddRangeAsync_WithValidEntities_AddsAllEntities()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var repository = new Repository<Project>(context);
         var projects = new[]
         {
@@ -113,16 +113,16 @@ public class RepositoryTests
     }
 
     [Fact]
-    public async Task Update_WithValidEntity_UpdatesEntity()
+    public async Task UpdateAsync_WithValidEntity_UpdatesEntity()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var repository = new Repository<Project>(context);
         var project = await repository.GetByIdAsync(1);
 
         // Act
         project.Name = "Updated Project";
-        repository.Update(project);
+        await repository.UpdateAsync(project);
         await context.SaveChangesAsync();
 
         // Assert
@@ -131,15 +131,15 @@ public class RepositoryTests
     }
 
     [Fact]
-    public async Task Delete_WithValidEntity_DeletesEntity()
+    public async Task DeleteAsync_WithValidEntity_DeletesEntity()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var repository = new Repository<Project>(context);
         var project = await repository.GetByIdAsync(1);
 
         // Act
-        repository.Delete(project);
+        await repository.DeleteAsync(project);
         await context.SaveChangesAsync();
 
         // Assert
@@ -148,10 +148,10 @@ public class RepositoryTests
     }
 
     [Fact]
-    public async Task DeleteRange_WithValidEntities_DeletesAllEntities()
+    public async Task DeleteRangeAsync_WithValidEntities_DeletesAllEntities()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var repository = new Repository<Project>(context);
         await repository.AddRangeAsync(new[]
         {
@@ -163,7 +163,7 @@ public class RepositoryTests
         var projectsToDelete = await repository.FindAsync(p => p.Id > 1);
 
         // Act
-        repository.DeleteRange(projectsToDelete);
+        await repository.DeleteRangeAsync(projectsToDelete);
         await context.SaveChangesAsync();
 
         // Assert
@@ -176,7 +176,7 @@ public class RepositoryTests
     public async Task AnyAsync_WithMatchingPredicate_ReturnsTrue()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var repository = new Repository<Project>(context);
 
         // Act
@@ -190,7 +190,7 @@ public class RepositoryTests
     public async Task AnyAsync_WithNonMatchingPredicate_ReturnsFalse()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var repository = new Repository<Project>(context);
 
         // Act

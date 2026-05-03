@@ -28,7 +28,7 @@ public class DeleteManyProjectCommandHandler
                 continue;
             }
 
-            _unitOfWork.Projects.Delete(project);
+            await _unitOfWork.Projects.DeleteAsync(project);
             results.Add(ToDTO(project));
         }
         

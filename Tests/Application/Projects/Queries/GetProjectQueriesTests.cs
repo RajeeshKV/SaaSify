@@ -12,7 +12,7 @@ public class GetProjectByIdQueryHandlerTests
     public async Task Handle_WithValidId_ReturnsProject()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
         var handler = new GetProjectByIdQueryHandler(unitOfWork);
         var query = new GetProjectByIdQuery { Id = 1 };
@@ -30,7 +30,7 @@ public class GetProjectByIdQueryHandlerTests
     public async Task Handle_WithInvalidId_ReturnsNull()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
         var handler = new GetProjectByIdQueryHandler(unitOfWork);
         var query = new GetProjectByIdQuery { Id = 999 };
@@ -49,9 +49,9 @@ public class GetAllProjectsQueryHandlerTests
     public async Task Handle_ReturnsAllProjects()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         context.Projects.Add(new Project { Id = 2, TenantId = 1, Name = "Project 2" });
-        context.SaveChanges();
+        await context.SaveChangesAsync();
 
         var unitOfWork = new UnitOfWork(context);
         var handler = new GetAllProjectsQueryHandler(unitOfWork);
@@ -70,7 +70,7 @@ public class GetAllProjectsQueryHandlerTests
         // Arrange
         var context = TestDbContextFactory.CreateInMemoryDbContext();
         var mockTenant = context.Tenants.Add(new Tenant { Id = 2, Name = "Empty Tenant" });
-        context.SaveChanges();
+        await context.SaveChangesAsync();
 
         var unitOfWork = new UnitOfWork(context);
         var handler = new GetAllProjectsQueryHandler(unitOfWork);

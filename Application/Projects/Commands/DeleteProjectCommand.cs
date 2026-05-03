@@ -18,7 +18,7 @@ public class DeleteProjectCommandHandler
         if (project == null)
             throw new Exception("Project not found");
 
-        _unitOfWork.Projects.Delete(project);
+        await _unitOfWork.Projects.DeleteAsync(project);
         await _unitOfWork.SaveChangesAsync();
     }
 }

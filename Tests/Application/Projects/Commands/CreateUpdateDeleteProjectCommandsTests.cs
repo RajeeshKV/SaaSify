@@ -11,7 +11,7 @@ public class CreateProjectCommandHandlerTests
     public async Task Handle_WithValidCommand_CreatesProject()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var mockTenantContext = new MockTenantContext();
         mockTenantContext.SetTenantId(1);
 
@@ -32,7 +32,7 @@ public class CreateProjectCommandHandlerTests
     public async Task Handle_WithValidCommand_PersistsProject()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var mockTenantContext = new MockTenantContext();
         mockTenantContext.SetTenantId(1);
 
@@ -56,7 +56,7 @@ public class UpdateProjectCommandHandlerTests
     public async Task Handle_WithValidCommand_UpdatesProject()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
         var handler = new UpdateProjectCommandHandler(unitOfWork);
         var command = new UpdateProjectCommand { Id = 1, Name = "Updated Project" };
@@ -73,7 +73,7 @@ public class UpdateProjectCommandHandlerTests
     public async Task Handle_WithInvalidId_ThrowsException()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
         var handler = new UpdateProjectCommandHandler(unitOfWork);
         var command = new UpdateProjectCommand { Id = 999, Name = "Updated" };
@@ -89,7 +89,7 @@ public class DeleteProjectCommandHandlerTests
     public async Task Handle_WithValidId_DeletesProject()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
         var handler = new DeleteProjectCommandHandler(unitOfWork);
         var command = new DeleteProjectCommand { Id = 1 };
@@ -106,7 +106,7 @@ public class DeleteProjectCommandHandlerTests
     public async Task Handle_WithInvalidId_ThrowsException()
     {
         // Arrange
-        var context = TestDbContextFactory.CreateInMemoryDbContextWithData();
+        var context = await TestDbContextFactory.CreateInMemoryDbContextWithData();
         var unitOfWork = new UnitOfWork(context);
         var handler = new DeleteProjectCommandHandler(unitOfWork);
         var command = new DeleteProjectCommand { Id = 999 };

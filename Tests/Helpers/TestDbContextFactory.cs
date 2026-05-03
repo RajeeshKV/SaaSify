@@ -17,7 +17,7 @@ public class TestDbContextFactory
         return context;
     }
 
-    public static ApplicationDbContext CreateInMemoryDbContextWithData(int tenantId = 1)
+    public static async Task<ApplicationDbContext> CreateInMemoryDbContextWithData(int tenantId = 1)
     {
         var context = CreateInMemoryDbContext();
         
@@ -45,7 +45,7 @@ public class TestDbContextFactory
         };
         context.Projects.Add(project);
 
-        context.SaveChanges();
+        await context.SaveChangesAsync();
         return context;
     }
 }

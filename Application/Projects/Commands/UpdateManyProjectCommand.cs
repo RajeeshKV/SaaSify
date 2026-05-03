@@ -29,7 +29,7 @@ public class UpdateManyProjectCommandHandler
             }
 
             project.Name = command.Name;
-            _unitOfWork.Projects.Update(project);
+            await _unitOfWork.Projects.UpdateAsync(project);
 
             results.Add(ToDTO(project));
         }

@@ -37,6 +37,8 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<ICacheService, InMemoryCacheService>();
+        services.AddScoped<IEmailService, BrevoEmailService>();
+        services.AddHttpClient<BrevoEmailService>();
         services.AddSingleton<ICorrelationIdGenerator, CorrelationIdGenerator>();
         services.AddMemoryCache();
         services.AddHealthChecks()

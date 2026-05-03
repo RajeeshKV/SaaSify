@@ -135,6 +135,20 @@ namespace Infrastructure.Services
         {
             try
             {
+                // Check if RabbitMQ connection is available
+                if (_channel == null || _connection == null || !_connection.IsOpen)
+                {
+                    _logger.LogWarning("RabbitMQ connection not available, attempting to reconnect...");
+                    await InitializeAsync();
+                    
+                    // Still not available after reconnection attempt
+                    if (_channel == null || _connection == null || !_connection.IsOpen)
+                    {
+                        _logger.LogError("RabbitMQ connection failed, message not published to queue {QueueName}", queueName);
+                        throw new InvalidOperationException("RabbitMQ connection is not available");
+                    }
+                }
+
                 var messageJson = JsonSerializer.Serialize(message);
                 var body = Encoding.UTF8.GetBytes(messageJson);
 

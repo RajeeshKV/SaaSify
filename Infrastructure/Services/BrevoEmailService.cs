@@ -118,6 +118,12 @@ public class BrevoEmailService : IEmailService
             {
                 _logger.LogInformation("Email sent successfully using template");
             }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                _logger.LogWarning("Template not found, falling back to direct email");
+                // Extract email data and send direct email
+                await SendDirectEmailAsync(emailData);
+            }
             else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
@@ -129,6 +135,66 @@ public class BrevoEmailService : IEmailService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error sending email using template");
+            throw;
+        }
+    }
+
+    private async Task SendDirectEmailAsync(object emailData)
+    {
+        try
+        {
+            // Parse the email data to extract recipient and content
+            var json = JsonSerializer.Serialize(emailData);
+            var emailObj = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+            
+            if (emailObj.ContainsKey("to") && emailObj.ContainsKey("params"))
+            {
+                var toArray = JsonSerializer.Deserialize<Dictionary<string, string>[]>(emailObj["to"].ToString());
+                var recipientEmail = toArray[0]["email"];
+                
+                var paramsObj = JsonSerializer.Deserialize<Dictionary<string, string>>(emailObj["params"].ToString());
+                var userName = paramsObj.GetValueOrDefault("userName", "User");
+                var setPasswordUrl = paramsObj.GetValueOrDefault("setPasswordUrl", "");
+                
+                // Create direct email content
+                var directEmailData = new
+                {
+                    sender = new { name = "SaaSify", email = "noreply@saasify.com" },
+                    to = new[] { new { email = recipientEmail } },
+                    subject = "Set Your Password - SaaSify",
+                    htmlContent = $@"
+                        <html>
+                        <body>
+                            <h2>Welcome to SaaSify!</h2>
+                            <p>Hello {userName},</p>
+                            <p>Your account has been created. Please set your password using the link below:</p>
+                            <p><a href='{setPasswordUrl}'>Set Your Password</a></p>
+                            <p>If you didn't request this, please ignore this email.</p>
+                            <p>Thanks,<br/>SaaSify Team</p>
+                        </body>
+                        </html>"
+                };
+
+                var directJson = JsonSerializer.Serialize(directEmailData);
+                var content = new StringContent(directJson, Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.PostAsync("/smtp/email", content);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("Direct email sent successfully to {Email}", recipientEmail);
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("Failed to send direct email. Status: {StatusCode}, Error: {Error}", response.StatusCode, errorContent);
+                    throw new InvalidOperationException($"Failed to send direct email: {errorContent}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending direct email");
             throw;
         }
     }

@@ -70,6 +70,9 @@ public static class DependencyInjection
         
         configuration.Bind("RBACMigration", rbacConfig);
         services.AddSingleton(rbacConfig);
+        
+        // Add Order Event Publisher
+        services.AddSingleton<IOrderEventPublisher, OrderEventPublisher>();
 
         return services;
     }

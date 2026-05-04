@@ -5,6 +5,7 @@ namespace Application.Common.Interfaces
         Task<PaymentIntentResponse> CreatePaymentIntentAsync(PaymentIntentRequest request);
         Task<CheckoutSessionResponse> CreateCheckoutSessionAsync(CheckoutSessionRequest request);
         Task ProcessWebhookAsync(string jsonBody, string signature);
+        Task<bool> ValidateSessionAsync(string sessionId);
     }
 
     public abstract class PaymentRequestBase

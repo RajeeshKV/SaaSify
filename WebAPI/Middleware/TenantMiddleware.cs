@@ -41,7 +41,12 @@ public class TenantMiddleware
             }
         }
 
-        if (tenantId == 0)
+        // Skip tenant validation for Stripe webhook callbacks
+        var isStripeCallback = context.Request.Path.StartsWithSegments("/api/stripe/success") || 
+                              context.Request.Path.StartsWithSegments("/api/stripe/cancel") ||
+                              context.Request.Path.StartsWithSegments("/api/stripe/webhook");
+        
+        if (tenantId == 0 && !isStripeCallback)
         {
             _logger.LogWarning("TenantId is required for {Path}", context.Request.Path);
             context.Response.StatusCode = 400;
@@ -49,6 +54,14 @@ public class TenantMiddleware
                 message = "TenantId is required",
                 code = "TENANT_REQUIRED"
             });
+            return;
+        }
+
+        // For Stripe callbacks, we don't need tenant context
+        if (isStripeCallback)
+        {
+            _logger.LogDebug("Skipping tenant validation for Stripe callback: {Path}", context.Request.Path);
+            await _next(context);
             return;
         }
 

@@ -11,13 +11,16 @@ namespace Infrastructure.Services
     {
         private readonly IConfiguration _configuration;
         private readonly ILogger<UnifiedStripePaymentService> _logger;
+        private readonly ISubscriptionService _subscriptionService;
 
         public UnifiedStripePaymentService(
             IConfiguration configuration, 
-            ILogger<UnifiedStripePaymentService> logger)
+            ILogger<UnifiedStripePaymentService> logger,
+            ISubscriptionService subscriptionService)
         {
             _configuration = configuration;
             _logger = logger;
+            _subscriptionService = subscriptionService;
             
             // Configure Stripe
             StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"];
@@ -158,10 +161,25 @@ namespace Infrastructure.Services
                         break;
                 }
             }
-            catch (StripeException ex)
+            catch (Exception ex)
             {
-                _logger.LogError(ex, "Stripe webhook processing failed");
-                throw new Exception($"Stripe webhook processing failed: {ex.Message}");
+                _logger.LogError(ex, "Failed to process Stripe webhook");
+                throw;
+            }
+        }
+
+        public async Task<bool> ValidateSessionAsync(string sessionId)
+        {
+            try
+            {
+                var service = new SessionService();
+                var session = await service.GetAsync(sessionId);
+                return session != null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to validate Stripe session: {SessionId}", sessionId);
+                return false;
             }
         }
 
@@ -184,17 +202,31 @@ namespace Infrastructure.Services
 
         private async Task HandleSubscriptionCheckoutCompleted(Session session)
         {
-            var tenantId = int.Parse(session.Metadata["tenant_id"]);
-            var planId = session.Metadata["plan_id"];
+            try
+            {
+                var tenantId = int.Parse(session.Metadata["tenant_id"]);
+                var planId = session.Metadata["plan_id"];
 
-            var plan = GetPlanById(planId);
-            if (plan == null)
-                return;
+                var plan = GetPlanById(planId);
+                if (plan == null)
+                {
+                    _logger.LogError("Plan not found: {PlanId} for tenant {TenantId}", planId, tenantId);
+                    return;
+                }
 
-            _logger.LogInformation("Subscription completed for tenant {TenantId}, plan {PlanId}", tenantId, planId);
-            
-            // TODO: Update tenant subscription in database
-            // This would require injecting ApplicationDbContext or using a service
+                _logger.LogInformation("Processing subscription completion for tenant {TenantId}, plan {PlanId}", tenantId, planId);
+                
+                // Create subscription using the subscription service
+                var subscription = await _subscriptionService.CreateSubscriptionAsync(tenantId, planId, plan.MonthlyPrice);
+                
+                _logger.LogInformation("Subscription activated successfully for tenant {TenantId}, plan {PlanId}, subscription ID: {SubscriptionId}", 
+                    tenantId, planId, subscription.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to activate subscription for session {SessionId}", session.Id);
+                throw;
+            }
         }
 
         private async Task HandleOrderCheckoutCompleted(Session session)

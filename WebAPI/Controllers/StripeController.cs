@@ -1,22 +1,23 @@
-using Application.Common.Interfaces;
+using Application.Stripe.Commands;
+using Application.Stripe.Queries;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Infrastructure.Services;
 
 [ApiController]
 [Route("api/[controller]")]
 public class StripeController : ControllerBase
 {
-    private readonly IStripePaymentService _stripePaymentService;
+    private readonly IMediator _mediator;
 
-    public StripeController(IStripePaymentService stripePaymentService)
+    public StripeController(IMediator mediator)
     {
-        _stripePaymentService = stripePaymentService;
+        _mediator = mediator;
     }
 
     [HttpPost("create-checkout-session")]
     [Authorize("subscription.manage")]
-    public async Task<ActionResult<string>> CreateCheckoutSession([FromBody] CreateCheckoutSessionRequest request)
+    public async Task<ActionResult<CreateCheckoutSessionResponse>> CreateCheckoutSession([FromBody] CreateCheckoutSessionRequest request)
     {
         var tenantIdClaim = User.FindFirst("TenantId")?.Value;
         if (!int.TryParse(tenantIdClaim, out var tenantId))
@@ -24,23 +25,16 @@ public class StripeController : ControllerBase
             return BadRequest("Invalid tenant ID");
         }
 
-        try
+        var command = new CreateCheckoutSessionCommand
         {
-            var checkoutRequest = new CheckoutSessionRequest
-            {
-                TenantId = tenantId,
-                PlanId = request.PlanId,
-                CustomerEmail = request.CustomerEmail,
-                Currency = "usd"
-            };
+            TenantId = tenantId,
+            PlanId = request.PlanId,
+            CustomerEmail = request.CustomerEmail,
+            Currency = "usd"
+        };
 
-            var checkoutSession = await _stripePaymentService.CreateCheckoutSessionAsync(checkoutRequest);
-            return Ok(new { checkoutUrl = checkoutSession.CheckoutUrl });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        var result = await _mediator.Send(command);
+        return Ok(result);
     }
 
     [HttpPost("webhook")]
@@ -49,29 +43,42 @@ public class StripeController : ControllerBase
         var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
         var signature = Request.Headers["Stripe-Signature"];
 
-        try
+        var command = new ProcessStripeWebhookCommand
         {
-            await _stripePaymentService.ProcessWebhookAsync(json, signature);
-            return Ok();
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
+            JsonPayload = json,
+            StripeSignature = signature
+        };
+
+        await _mediator.Send(command);
+        return Ok();
     }
 
     [HttpGet("success")]
     public async Task<IActionResult> Success([FromQuery] string session_id)
     {
-        // Handle successful payment
-        return Redirect($"{Request.Scheme}://{Request.Host}/billing/success");
+        var query = new HandleStripeSuccessQuery { SessionId = session_id };
+        var result = await _mediator.Send(query);
+
+        if (result.Success)
+        {
+            return Redirect(result.RedirectUrl);
+        }
+
+        return BadRequest(result.Error);
     }
 
     [HttpGet("cancel")]
-    public IActionResult Cancel()
+    public async Task<IActionResult> Cancel([FromQuery] string session_id)
     {
-        // Handle cancelled payment
-        return Redirect($"{Request.Scheme}://{Request.Host}/billing/cancel");
+        var query = new HandleStripeCancelQuery { SessionId = session_id };
+        var result = await _mediator.Send(query);
+
+        if (result.Success)
+        {
+            return Redirect(result.RedirectUrl);
+        }
+
+        return BadRequest(result.Error);
     }
 }
 

@@ -138,14 +138,24 @@ namespace Infrastructure.Services
         {
             try
             {
+                _logger.LogInformation("Webhook received. JsonBody length: {JsonBodyLength}, Signature: {Signature}", 
+                    jsonBody?.Length ?? 0, signature?.Substring(0, Math.Min(20, signature?.Length ?? 0)) + "...");
+
                 var webhookSecret = _configuration["Stripe:WebhookSecret"];
+                if (string.IsNullOrEmpty(webhookSecret))
+                {
+                    _logger.LogError("Stripe webhook secret is not configured");
+                    throw new InvalidOperationException("Stripe webhook secret is not configured");
+                }
+
                 var stripeEvent = EventUtility.ConstructEvent(jsonBody, signature, webhookSecret);
 
-                _logger.LogInformation("Processing Stripe webhook event: {EventType}", stripeEvent.Type);
+                _logger.LogInformation("Processing Stripe webhook event: {EventType}, Event ID: {EventId}", stripeEvent.Type, stripeEvent.Id);
 
                 switch (stripeEvent.Type)
                 {
                     case Events.CheckoutSessionCompleted:
+                        _logger.LogInformation("Handling CheckoutSessionCompleted event");
                         await HandleCheckoutSessionCompleted(stripeEvent.Data.Object as Session);
                         break;
                     case Events.PaymentIntentSucceeded:
@@ -189,18 +199,34 @@ namespace Infrastructure.Services
 
         private async Task HandleCheckoutSessionCompleted(Session session)
         {
+            _logger.LogInformation("HandleCheckoutSessionCompleted called for session {SessionId}", session.Id);
+            
             if (session.Metadata == null)
+            {
+                _logger.LogError("Session metadata is null for session {SessionId}", session.Id);
                 return;
+            }
+
+            _logger.LogInformation("Session metadata for checkout completion: {Metadata}", 
+                string.Join(", ", session.Metadata.Select(kvp => $"{kvp.Key}={kvp.Value}")));
 
             var paymentType = session.Metadata.GetValueOrDefault("payment_type");
             
+            _logger.LogInformation("Payment type detected: {PaymentType} for session {SessionId}", paymentType, session.Id);
+            
             if (paymentType == "subscription")
             {
+                _logger.LogInformation("Processing subscription checkout completion for session {SessionId}", session.Id);
                 await HandleSubscriptionCheckoutCompleted(session);
             }
             else if (paymentType == "order")
             {
+                _logger.LogInformation("Processing order checkout completion for session {SessionId}", session.Id);
                 await HandleOrderCheckoutCompleted(session);
+            }
+            else
+            {
+                _logger.LogWarning("Unknown payment type '{PaymentType}' for session {SessionId}", paymentType, session.Id);
             }
         }
 
@@ -208,8 +234,32 @@ namespace Infrastructure.Services
         {
             try
             {
+                _logger.LogInformation("HandleSubscriptionCheckoutCompleted called for session {SessionId}", session.Id);
+                
+                if (session.Metadata == null)
+                {
+                    _logger.LogError("Session metadata is null for session {SessionId}", session.Id);
+                    return;
+                }
+
+                _logger.LogInformation("Session metadata: {Metadata}", string.Join(", ", session.Metadata.Select(kvp => $"{kvp.Key}={kvp.Value}")));
+
+                if (!session.Metadata.ContainsKey("tenant_id"))
+                {
+                    _logger.LogError("tenant_id not found in metadata for session {SessionId}", session.Id);
+                    return;
+                }
+
+                if (!session.Metadata.ContainsKey("plan_id"))
+                {
+                    _logger.LogError("plan_id not found in metadata for session {SessionId}", session.Id);
+                    return;
+                }
+
                 var tenantId = int.Parse(session.Metadata["tenant_id"]);
                 var planId = session.Metadata["plan_id"];
+
+                _logger.LogInformation("Extracted tenantId: {TenantId}, planId: {PlanId} from session {SessionId}", tenantId, planId, session.Id);
 
                 var plan = GetPlanById(planId);
                 if (plan == null)
@@ -218,17 +268,19 @@ namespace Infrastructure.Services
                     return;
                 }
 
-                _logger.LogInformation("Processing subscription completion for tenant {TenantId}, plan {PlanId}", tenantId, planId);
+                _logger.LogInformation("Found plan: {PlanName} with price {Price} for tenant {TenantId}", plan.Name, plan.MonthlyPrice, tenantId);
                 
                 // Create subscription using the subscription service
+                _logger.LogInformation("Calling CreateSubscriptionAsync for tenant {TenantId}, plan {PlanId}, amount {Amount}", tenantId, planId, plan.MonthlyPrice);
+                
                 var subscription = await _subscriptionService.CreateSubscriptionAsync(tenantId, planId, plan.MonthlyPrice);
                 
-                _logger.LogInformation("Subscription activated successfully for tenant {TenantId}, plan {PlanId}, subscription ID: {SubscriptionId}", 
-                    tenantId, planId, subscription.Id);
+                _logger.LogInformation("Subscription activated successfully for tenant {TenantId}, plan {PlanId}, subscription ID: {SubscriptionId}, StartDate: {StartDate}, EndDate: {EndDate}", 
+                    tenantId, planId, subscription.Id, subscription.StartDate, subscription.EndDate);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to activate subscription for session {SessionId}", session.Id);
+                _logger.LogError(ex, "Failed to activate subscription for session {SessionId}. Error details: {ErrorDetails}", session.Id, ex.ToString());
                 throw;
             }
         }

@@ -20,6 +20,7 @@ namespace WebAPI.Controllers
         private readonly IStripePaymentService _stripePaymentService;
         private readonly OrderWebSocketService _webSocketService;
         private readonly ITenantContext _tenantContext;
+        private readonly IConfiguration _configuration;
 
         public OrdersController(
             IOrderEventPublisher orderEventPublisher, 
@@ -27,7 +28,8 @@ namespace WebAPI.Controllers
             ILogger<OrdersController> logger,
             IStripePaymentService stripePaymentService,
             OrderWebSocketService webSocketService,
-            ITenantContext tenantContext)
+            ITenantContext tenantContext,
+            IConfiguration configuration)
         {
             _orderEventPublisher = orderEventPublisher;
             _orderServiceClient = orderServiceClient;
@@ -35,10 +37,11 @@ namespace WebAPI.Controllers
             _stripePaymentService = stripePaymentService;
             _webSocketService = webSocketService;
             _tenantContext = tenantContext;
+            _configuration = configuration;
         }
 
-        [HttpPost("create-payment-intent")]
-        public async Task<IActionResult> CreatePaymentIntent([FromBody] CreatePaymentIntentRequest request)
+        [HttpPost("create-checkout-session")]
+        public async Task<IActionResult> CreateCheckoutSession([FromBody] CreateCheckoutSessionRequest request)
         {
             try
             {
@@ -51,44 +54,38 @@ namespace WebAPI.Controllers
                     return BadRequest("Invalid tenant or user ID in token");
                 }
 
-                var metadata = new Dictionary<string, string>
+                var checkoutRequest = new CheckoutSessionRequest
                 {
-                    { "tenant_id", tenantId.ToString() },
-                    { "user_id", userId.ToString() },
-                    { "customer_email", request.CustomerEmail ?? emailClaim }
-                };
-
-                var paymentRequest = new PaymentIntentRequest
-                {
-                    Amount = request.Amount,
-                    Currency = request.Currency ?? "usd",
-                    CustomerEmail = request.CustomerEmail ?? emailClaim,
                     TenantId = tenantId,
-                    UserId = userId,
-                    PaymentType = "order",
-                    Metadata = metadata
+                    PlanId = "order", // Use "order" as plan identifier
+                    CustomerEmail = request.CustomerEmail ?? emailClaim,
+                    Currency = request.Currency ?? "usd",
+                    SuccessUrl = $"{_configuration["Stripe:BaseUrl"]}/api/stripe/order-success?session_id={{CHECKOUT_SESSION_ID}}",
+                    CancelUrl = $"{_configuration["Stripe:BaseUrl"]}/api/stripe/order-cancel?session_id={{CHECKOUT_SESSION_ID}}"
                 };
 
-                var paymentIntent = await _stripePaymentService.CreatePaymentIntentAsync(paymentRequest);
+                // Add metadata to checkout session
+                checkoutRequest.Metadata["tenant_id"] = tenantId.ToString();
+                checkoutRequest.Metadata["user_id"] = userId.ToString();
+                checkoutRequest.Metadata["customer_email"] = request.CustomerEmail ?? emailClaim;
+                checkoutRequest.Metadata["payment_type"] = "order";
+                checkoutRequest.Metadata["order_id"] = request.OrderId?.ToString() ?? "";
 
-                _logger.LogInformation("Payment intent created: TenantId={TenantId}, UserId={UserId}, Amount={Amount}, PaymentIntentId={PaymentIntentId}", 
-                    tenantId, userId, request.Amount, paymentIntent.PaymentIntentId);
+                var checkoutSession = await _stripePaymentService.CreateCheckoutSessionAsync(checkoutRequest);
+
+                _logger.LogInformation("Checkout session created: TenantId={TenantId}, UserId={UserId}, Amount={Amount}, SessionId={SessionId}", 
+                    tenantId, userId, request.Amount, checkoutSession.SessionId);
 
                 return Ok(new
                 {
-                    ClientSecret = paymentIntent.ClientSecret,
-                    PaymentIntentId = paymentIntent.PaymentIntentId,
-                    Amount = request.Amount,
-                    Currency = request.Currency ?? "usd",
-                    Status = paymentIntent.Status,
-                    TenantId = tenantId,
-                    UserId = userId
+                    CheckoutUrl = checkoutSession.CheckoutUrl,
+                    SessionId = checkoutSession.SessionId
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create payment intent");
-                return StatusCode(500, "Internal server error");
+                _logger.LogError(ex, "Failed to create checkout session");
+                return StatusCode(500, "Failed to create checkout session");
             }
         }
 
@@ -296,6 +293,13 @@ namespace WebAPI.Controllers
         string? CustomerEmail,
         string? PaymentIntentId,
         string? PaymentMethod
+    );
+
+    public record CreateCheckoutSessionRequest(
+        decimal Amount,
+        string? CustomerEmail,
+        string? Currency,
+        int? OrderId
     );
 
     public record CreatePaymentIntentRequest(

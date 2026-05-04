@@ -11,17 +11,20 @@ public class StripeController : ControllerBase
     private readonly ProcessStripeWebhookCommandHandler _processStripeWebhookHandler;
     private readonly HandleStripeSuccessQueryHandler _handleStripeSuccessQueryHandler;
     private readonly HandleStripeCancelQueryHandler _handleStripeCancelQueryHandler;
+    private readonly IConfiguration _configuration;
 
     public StripeController(
         CreateCheckoutSessionCommandHandler createCheckoutSessionHandler,
         ProcessStripeWebhookCommandHandler processStripeWebhookHandler,
         HandleStripeSuccessQueryHandler handleStripeSuccessQueryHandler,
-        HandleStripeCancelQueryHandler handleStripeCancelQueryHandler)
+        HandleStripeCancelQueryHandler handleStripeCancelQueryHandler,
+        IConfiguration configuration)
     {
         _createCheckoutSessionHandler = createCheckoutSessionHandler;
         _processStripeWebhookHandler = processStripeWebhookHandler;
         _handleStripeSuccessQueryHandler = handleStripeSuccessQueryHandler;
         _handleStripeCancelQueryHandler = handleStripeCancelQueryHandler;
+        _configuration = configuration;
     }
 
     [HttpPost("create-checkout-session")]
@@ -85,6 +88,40 @@ public class StripeController : ControllerBase
         if (result.Success)
         {
             return Redirect(result.RedirectUrl);
+        }
+
+        return BadRequest(result.Error);
+    }
+
+    [HttpGet("order-success")]
+    public async Task<IActionResult> OrderSuccess([FromQuery] string session_id)
+    {
+        var query = new HandleStripeSuccessQuery { SessionId = session_id };
+        var result = await _handleStripeSuccessQueryHandler.Handle(query, default);
+
+        if (result.Success)
+        {
+            // Redirect to frontend order success page
+            var frontendUrl = _configuration["Frontend:BaseUrl"] ?? "https://saasify.rajeesh.online";
+            var redirectUrl = $"{frontendUrl}/order/success?session_id={session_id}&success=true";
+            return Redirect(redirectUrl);
+        }
+
+        return BadRequest(result.Error);
+    }
+
+    [HttpGet("order-cancel")]
+    public async Task<IActionResult> OrderCancel([FromQuery] string session_id)
+    {
+        var query = new HandleStripeCancelQuery { SessionId = session_id };
+        var result = await _handleStripeCancelQueryHandler.Handle(query, default);
+
+        if (result.Success)
+        {
+            // Redirect to frontend order cancel page
+            var frontendUrl = _configuration["Frontend:BaseUrl"] ?? "https://saasify.rajeesh.online";
+            var redirectUrl = $"{frontendUrl}/order/cancel?session_id={session_id}&cancelled=true";
+            return Redirect(redirectUrl);
         }
 
         return BadRequest(result.Error);

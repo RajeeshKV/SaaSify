@@ -67,6 +67,14 @@ namespace Infrastructure.Services
         {
             try
             {
+                // Check if this is an order payment (PlanId = "order")
+                if (request.PlanId == "order")
+                {
+                    // Handle order payment
+                    return await CreateOrderCheckoutSessionAsync(request);
+                }
+
+                // Handle subscription payment
                 var plan = GetPlanById(request.PlanId);
                 if (plan == null)
                 {
@@ -287,6 +295,65 @@ namespace Infrastructure.Services
                 }
             }
             return null;
+        }
+
+        private async Task<Application.Common.Interfaces.CheckoutSessionResponse> CreateOrderCheckoutSessionAsync(CheckoutSessionRequest request)
+        {
+            try
+            {
+                // Add order metadata
+                request.Metadata["tenant_id"] = request.TenantId.ToString();
+                request.Metadata["payment_type"] = "order";
+                if (request.Metadata.ContainsKey("order_id"))
+                {
+                    request.Metadata["order_id"] = request.Metadata["order_id"];
+                }
+
+                var options = new SessionCreateOptions
+                {
+                    CustomerEmail = request.CustomerEmail,
+                    PaymentMethodTypes = new List<string> { "card" },
+                    LineItems = new List<SessionLineItemOptions>
+                    {
+                        new SessionLineItemOptions
+                        {
+                            PriceData = new SessionLineItemPriceDataOptions
+                            {
+                                UnitAmount = (long)(request.Amount * 100), // Convert to cents
+                                Currency = request.Currency,
+                                ProductData = new SessionLineItemPriceDataProductDataOptions
+                                {
+                                    Name = "Order Payment",
+                                    Description = "Payment for order"
+                                }
+                            },
+                            Quantity = 1
+                        }
+                    },
+                    Mode = "payment", // One-time payment
+                    SuccessUrl = request.SuccessUrl,
+                    CancelUrl = request.CancelUrl,
+                    Metadata = request.Metadata
+                };
+
+                var service = new SessionService();
+                var session = await service.CreateAsync(options);
+
+                _logger.LogInformation("Order checkout session created: {SessionId} for tenant {TenantId}, amount {Amount}", 
+                    session.Id, request.TenantId, request.Amount);
+
+                return new Application.Common.Interfaces.CheckoutSessionResponse
+                {
+                    SessionId = session.Id,
+                    CheckoutUrl = session.Url,
+                    Status = session.Status
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create order checkout session for tenant {TenantId}", request.TenantId);
+                throw new Exception($"Failed to create order checkout session: {ex.Message}");
+            }
         }
 
         private string GetBaseUrl()

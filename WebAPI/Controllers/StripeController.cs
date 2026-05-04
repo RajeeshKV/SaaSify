@@ -1,6 +1,5 @@
 using Application.Stripe.Commands;
 using Application.Stripe.Queries;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,11 +7,21 @@ using Microsoft.AspNetCore.Mvc;
 [Route("api/[controller]")]
 public class StripeController : ControllerBase
 {
-    private readonly IMediator _mediator;
+    private readonly CreateCheckoutSessionCommandHandler _createCheckoutSessionHandler;
+    private readonly ProcessStripeWebhookCommandHandler _processStripeWebhookHandler;
+    private readonly HandleStripeSuccessQueryHandler _handleStripeSuccessQueryHandler;
+    private readonly HandleStripeCancelQueryHandler _handleStripeCancelQueryHandler;
 
-    public StripeController(IMediator mediator)
+    public StripeController(
+        CreateCheckoutSessionCommandHandler createCheckoutSessionHandler,
+        ProcessStripeWebhookCommandHandler processStripeWebhookHandler,
+        HandleStripeSuccessQueryHandler handleStripeSuccessQueryHandler,
+        HandleStripeCancelQueryHandler handleStripeCancelQueryHandler)
     {
-        _mediator = mediator;
+        _createCheckoutSessionHandler = createCheckoutSessionHandler;
+        _processStripeWebhookHandler = processStripeWebhookHandler;
+        _handleStripeSuccessQueryHandler = handleStripeSuccessQueryHandler;
+        _handleStripeCancelQueryHandler = handleStripeCancelQueryHandler;
     }
 
     [HttpPost("create-checkout-session")]
@@ -33,7 +42,7 @@ public class StripeController : ControllerBase
             Currency = "usd"
         };
 
-        var result = await _mediator.Send(command);
+        var result = await _createCheckoutSessionHandler.Handle(command, default);
         return Ok(result);
     }
 
@@ -49,7 +58,7 @@ public class StripeController : ControllerBase
             StripeSignature = signature
         };
 
-        await _mediator.Send(command);
+        await _processStripeWebhookHandler.Handle(command, default);
         return Ok();
     }
 
@@ -57,7 +66,7 @@ public class StripeController : ControllerBase
     public async Task<IActionResult> Success([FromQuery] string session_id)
     {
         var query = new HandleStripeSuccessQuery { SessionId = session_id };
-        var result = await _mediator.Send(query);
+        var result = await _handleStripeSuccessQueryHandler.Handle(query, default);
 
         if (result.Success)
         {
@@ -71,7 +80,7 @@ public class StripeController : ControllerBase
     public async Task<IActionResult> Cancel([FromQuery] string session_id)
     {
         var query = new HandleStripeCancelQuery { SessionId = session_id };
-        var result = await _mediator.Send(query);
+        var result = await _handleStripeCancelQueryHandler.Handle(query, default);
 
         if (result.Success)
         {

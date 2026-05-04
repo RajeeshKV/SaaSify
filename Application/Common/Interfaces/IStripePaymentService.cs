@@ -20,7 +20,7 @@ namespace Application.Common.Interfaces
     {
         public int TenantId { get; set; }
         public int UserId { get; set; }
-        public string PaymentType { get; set; } // "order" or "subscription"
+        public string PaymentType { get; set; } = "order"; // "order" or "subscription"
     }
 
     public class CheckoutSessionRequest : PaymentRequestBase

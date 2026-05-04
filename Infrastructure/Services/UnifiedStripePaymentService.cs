@@ -40,11 +40,7 @@ namespace Infrastructure.Services
                     Amount = (long)(request.Amount * 100), // Convert to cents
                     Currency = request.Currency,
                     PaymentMethodTypes = new List<string> { "card" },
-                    Metadata = request.Metadata,
-                    AutomaticPaymentMethods = new PaymentIntentAutomaticPaymentMethodsOptions
-                    {
-                        Enabled = true
-                    }
+                    Metadata = request.Metadata
                 };
 
                 var service = new PaymentIntentService();

@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Application.Common.Interfaces;
 using Application.Common.Configuration;
+using Application.Stripe.Commands;
+using Application.Stripe.Queries;
 using Infrastructure.Interceptors;
 using Infrastructure.Services;
 
@@ -35,6 +37,12 @@ public static class DependencyInjection
         services.AddScoped<IStripePaymentService, UnifiedStripePaymentService>();
         services.AddScoped<IStripeService, StripeService>(); // Keep for backward compatibility
         services.AddScoped<RBACMigrationService>();
+        
+        // Stripe command and query handlers
+        services.AddScoped<CreateCheckoutSessionCommandHandler>();
+        services.AddScoped<ProcessStripeWebhookCommandHandler>();
+        services.AddScoped<HandleStripeSuccessQueryHandler>();
+        services.AddScoped<HandleStripeCancelQueryHandler>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<ICacheService, InMemoryCacheService>();

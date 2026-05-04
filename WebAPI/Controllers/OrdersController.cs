@@ -41,7 +41,7 @@ namespace WebAPI.Controllers
         }
 
         [HttpPost("create-checkout-session")]
-        public async Task<IActionResult> CreateCheckoutSession([FromBody] CreateCheckoutSessionRequest request)
+        public async Task<IActionResult> CreateCheckoutSession([FromBody] CreateOrderCheckoutSessionRequest request)
         {
             try
             {
@@ -295,7 +295,7 @@ namespace WebAPI.Controllers
         string? PaymentMethod
     );
 
-    public record CreateCheckoutSessionRequest(
+    public record CreateOrderCheckoutSessionRequest(
         decimal Amount,
         string? CustomerEmail,
         string? Currency,

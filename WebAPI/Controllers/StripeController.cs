@@ -49,22 +49,6 @@ public class StripeController : ControllerBase
         return Ok(result);
     }
 
-    [HttpPost("webhook")]
-    public async Task<IActionResult> Webhook()
-    {
-        var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
-        var signature = Request.Headers["Stripe-Signature"];
-
-        var command = new ProcessStripeWebhookCommand
-        {
-            JsonPayload = json,
-            StripeSignature = signature
-        };
-
-        await _processStripeWebhookHandler.Handle(command, default);
-        return Ok();
-    }
-
     [HttpGet("success")]
     public async Task<IActionResult> Success([FromQuery] string session_id)
     {

@@ -148,7 +148,7 @@ namespace Infrastructure.Services
                     throw new InvalidOperationException("Stripe webhook secret is not configured");
                 }
 
-                var stripeEvent = EventUtility.ConstructEvent(jsonBody, signature, webhookSecret);
+                var stripeEvent = EventUtility.ConstructEvent(jsonBody, signature, webhookSecret, throwOnApiVersionMismatch: false);
 
                 _logger.LogInformation("Processing Stripe webhook event: {EventType}, Event ID: {EventId}", stripeEvent.Type, stripeEvent.Id);
 

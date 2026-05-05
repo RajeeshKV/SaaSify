@@ -108,8 +108,8 @@ namespace Infrastructure.Services
                         }
                     },
                     Mode = "payment",
-                    SuccessUrl = $"{GetBaseUrl()}/api/stripe/success?session_id={{CHECKOUT_SESSION_ID}}",
-                    CancelUrl = $"{GetBaseUrl()}/api/stripe/cancel",
+                    SuccessUrl = $"{GetBaseUrl()}/api/v1/stripe/success?session_id={{CHECKOUT_SESSION_ID}}",
+                    CancelUrl = $"{GetBaseUrl()}/api/v1/stripe/cancel",
                     Metadata = request.Metadata
                 };
 

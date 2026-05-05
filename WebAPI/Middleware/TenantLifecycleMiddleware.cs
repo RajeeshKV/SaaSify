@@ -18,7 +18,7 @@ namespace WebAPI.Middleware
         {
             // Skip tenant validation for auth endpoints and health checks
             var path = context.Request.Path.Value?.ToLower();
-            if (path != null && (path.StartsWith("/api/auth") || path.StartsWith("/health")))
+            if (path != null && (path.StartsWith("/api/v1/auth") || path.StartsWith("/health")))
             {
                 await _next(context);
                 return;

@@ -51,7 +51,7 @@ namespace Infrastructure.Services
 
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, $"/api/Orders?page={page}&pageSize={pageSize}");
+                var request = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/orders?page={page}&pageSize={pageSize}");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
                 
                 var response = await _httpClient.SendAsync(request);
@@ -95,7 +95,7 @@ namespace Infrastructure.Services
 
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, $"/api/Orders/{orderId}");
+                var request = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/orders/{orderId}");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
                 
                 var response = await _httpClient.SendAsync(request);

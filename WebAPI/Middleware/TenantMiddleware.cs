@@ -110,6 +110,6 @@ public class TenantMiddleware
             || path.StartsWithSegments("/api/v1/auth")
             || path.StartsWithSegments("/health")
             || path.StartsWithSegments("/swagger")
-            || path.StartsWithSegments("/api/v1/health");
+            || path.StartsWithSegments("/api/health");
     }
 }

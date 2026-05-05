@@ -100,6 +100,11 @@ public static class DependencyInjection
         // Add OrderService Client
         services.AddHttpClient<IOrderServiceClient, OrderServiceClient>();
         
+        // Add HTTP Client Proxy for external APIs
+        services.AddHttpClient<HttpClientProxy>();
+        services.AddHttpClient<StripeApiClient>();
+        services.AddHttpClient<BrevoApiClient>();
+        
         // Order WebSocket Service is registered in WebAPI Program.cs
 
         return services;

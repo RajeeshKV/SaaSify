@@ -44,7 +44,10 @@ public class TenantMiddleware
         // Skip tenant validation for Stripe webhook callbacks
         var isStripeCallback = context.Request.Path.StartsWithSegments("/api/v1/stripe/success") || 
                               context.Request.Path.StartsWithSegments("/api/v1/stripe/cancel") ||
-                              context.Request.Path.StartsWithSegments("/api/v1/stripe/webhook");
+                              context.Request.Path.StartsWithSegments("/api/v1/stripe/webhook") ||
+                              context.Request.Path.StartsWithSegments("/api/v1/order/success") ||
+                              context.Request.Path.StartsWithSegments("/api/v1/order/cancel") ||
+                              context.Request.Path.StartsWithSegments("/api/v1/order/webhook");
         
         if (tenantId == 0 && !isStripeCallback)
         {

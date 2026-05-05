@@ -6,7 +6,7 @@ namespace Application.Stripe.Commands
     public class CreateCheckoutSessionCommand
     {
         public int TenantId { get; set; }
-        public string PlanId { get; set; }
+        public string PlanId { get; set; } = string.Empty;
         public string? CustomerEmail { get; set; }
         public string Currency { get; set; } = "usd";
     }

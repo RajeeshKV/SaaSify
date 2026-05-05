@@ -13,17 +13,20 @@ namespace Infrastructure.Services
         private readonly ILogger<UnifiedStripePaymentService> _logger;
         private readonly ISubscriptionService _subscriptionService;
         private readonly IOrderServiceClient _orderServiceClient;
+        private readonly StripeApiClient _stripeApiClient;
 
         public UnifiedStripePaymentService(
             IConfiguration configuration, 
             ILogger<UnifiedStripePaymentService> logger,
             ISubscriptionService subscriptionService,
-            IOrderServiceClient orderServiceClient)
+            IOrderServiceClient orderServiceClient,
+            StripeApiClient stripeApiClient)
         {
             _configuration = configuration;
             _logger = logger;
             _subscriptionService = subscriptionService;
             _orderServiceClient = orderServiceClient;
+            _stripeApiClient = stripeApiClient;
             
             // Configure Stripe
             StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"];
@@ -159,7 +162,8 @@ namespace Infrastructure.Services
                 {
                     case Events.CheckoutSessionCompleted:
                         _logger.LogInformation("Handling CheckoutSessionCompleted event");
-                        await HandleCheckoutSessionCompleted(stripeEvent.Data.Object as Session);
+                        if (stripeEvent.Data.Object is Session session)
+                            await HandleCheckoutSessionCompleted(session);
                         break;
                     case Events.PaymentIntentSucceeded:
                         await HandlePaymentIntentSucceeded(stripeEvent.Data.Object as PaymentIntent);
@@ -420,8 +424,8 @@ namespace Infrastructure.Services
                         {
                             PriceData = new SessionLineItemPriceDataOptions
                             {
-                                UnitAmount = (long)(request.Amount * 100), // Convert to cents
                                 Currency = request.Currency,
+                                UnitAmount = (long)(request.Amount * 100), // Convert to cents
                                 ProductData = new SessionLineItemPriceDataProductDataOptions
                                 {
                                     Name = "Order Payment",

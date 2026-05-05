@@ -129,7 +129,7 @@ namespace Infrastructure.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync("/health");
+                var response = await _httpClient.GetAsync("/api/health");
                 return response.IsSuccessStatusCode;
             }
             catch

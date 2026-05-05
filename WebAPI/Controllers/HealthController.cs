@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 public class HealthController : ControllerBase
 {
     [HttpGet]
+    [HttpHead]
     public IActionResult GetHealth()
     {
         return Ok(new

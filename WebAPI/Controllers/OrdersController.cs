@@ -96,6 +96,7 @@ namespace WebAPI.Controllers
         }
 
         [HttpGet("health")]
+        [HttpHead("health")]
         [AllowAnonymous]
         public IActionResult HealthCheck()
         {

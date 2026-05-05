@@ -4,6 +4,7 @@ using Application.Stripe.Commands;
 using Application.Stripe.Queries;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Infrastructure.Services;
 
 namespace WebAPI.Controllers
 {
@@ -16,17 +17,20 @@ namespace WebAPI.Controllers
         private readonly HandleOrderSuccessQueryHandler _handleOrderSuccessQueryHandler;
         private readonly HandleOrderCancelQueryHandler _handleOrderCancelQueryHandler;
         private readonly IConfiguration _configuration;
+        private readonly IOrderServiceClient _orderServiceClient;
 
         public OrdersController(
             CreateOrderCheckoutSessionCommandHandler createOrderCheckoutSessionHandler,
             HandleOrderSuccessQueryHandler handleOrderSuccessQueryHandler,
             HandleOrderCancelQueryHandler handleOrderCancelQueryHandler,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IOrderServiceClient orderServiceClient)
         {
             _createOrderCheckoutSessionHandler = createOrderCheckoutSessionHandler;
             _handleOrderSuccessQueryHandler = handleOrderSuccessQueryHandler;
             _handleOrderCancelQueryHandler = handleOrderCancelQueryHandler;
             _configuration = configuration;
+            _orderServiceClient = orderServiceClient;
         }
 
         [HttpPost("checkout")]
@@ -41,6 +45,13 @@ namespace WebAPI.Controllers
                 if (!int.TryParse(tenantIdClaim, out var tenantId) || !int.TryParse(userIdClaim, out var userId))
                 {
                     return BadRequest("Invalid tenant or user ID in token");
+                }
+
+                // Check OrderService availability before processing payment
+                var isOrderServiceHealthy = await _orderServiceClient.IsHealthyAsync();
+                if (!isOrderServiceHealthy)
+                {
+                    return StatusCode(503, "Service is temporarily unavailable. Please try again later.");
                 }
 
                 var command = new CreateOrderCheckoutSessionCommand

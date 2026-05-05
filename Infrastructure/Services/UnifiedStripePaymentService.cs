@@ -12,15 +12,18 @@ namespace Infrastructure.Services
         private readonly IConfiguration _configuration;
         private readonly ILogger<UnifiedStripePaymentService> _logger;
         private readonly ISubscriptionService _subscriptionService;
+        private readonly IOrderServiceClient _orderServiceClient;
 
         public UnifiedStripePaymentService(
             IConfiguration configuration, 
             ILogger<UnifiedStripePaymentService> logger,
-            ISubscriptionService subscriptionService)
+            ISubscriptionService subscriptionService,
+            IOrderServiceClient orderServiceClient)
         {
             _configuration = configuration;
             _logger = logger;
             _subscriptionService = subscriptionService;
+            _orderServiceClient = orderServiceClient;
             
             // Configure Stripe
             StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"];
@@ -292,8 +295,54 @@ namespace Infrastructure.Services
             
             _logger.LogInformation("Order payment completed for tenant {TenantId}, order {OrderId}", tenantId, orderId);
             
-            // TODO: Update order status in database
-            // This would require injecting ApplicationDbContext or using a service
+            try
+            {
+                // Create order in OrderService after successful payment
+                var accessToken = await GetAccessTokenForTenant(tenantId);
+                if (string.IsNullOrEmpty(accessToken))
+                {
+                    _logger.LogError("Failed to get access token for tenant {TenantId}", tenantId);
+                    return;
+                }
+
+                var orderRequest = new
+                {
+                    Amount = (decimal)session.AmountTotal / 100, // Convert from cents
+                    Currency = session.Currency.ToUpper(),
+                    Description = $"Payment for order {orderId}",
+                    CustomerEmail = session.CustomerDetails?.Email,
+                    Metadata = new Dictionary<string, string>
+                    {
+                        {"stripe_session_id", session.Id},
+                        {"payment_status", session.PaymentStatus},
+                        {"paid_at", DateTime.UtcNow.ToString("O")}
+                    }
+                };
+
+                // This would require OrderService to have a create order endpoint
+                // For now, we'll log the successful payment
+                _logger.LogInformation("Order payment processed successfully: TenantId={TenantId}, Amount={Amount}, SessionId={SessionId}", 
+                    tenantId, session.AmountTotal / 100, session.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create order in OrderService for tenant {TenantId}", tenantId);
+                // Payment was successful but order creation failed - this needs manual intervention
+                // Consider implementing refund logic here
+            }
+        }
+
+        private async Task<string> GetAccessTokenForTenant(int tenantId)
+        {
+            // TODO: Implement proper token generation for OrderService calls
+            // For now, return empty string to indicate no token available
+            // In a real implementation, you would:
+            // 1. Generate a service-to-service token
+            // 2. Include tenant context
+            // 3. Return the token for OrderService API calls
+            
+            _logger.LogWarning("GetAccessTokenForTenant not implemented for tenant {TenantId}", tenantId);
+            return string.Empty;
         }
 
         private async Task HandlePaymentIntentSucceeded(PaymentIntent paymentIntent)

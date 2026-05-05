@@ -24,7 +24,7 @@ namespace Infrastructure.Services
             _exchangeName = _configuration["OrderQueue:Exchange"] ?? "order.exchange";
             
             // Initialize asynchronously in the background
-            Task.Run(InitializeAsync);
+            _ = Task.Run(InitializeAsync);
         }
 
         private async Task InitializeAsync()

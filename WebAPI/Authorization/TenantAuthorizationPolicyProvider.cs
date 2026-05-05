@@ -33,9 +33,9 @@ namespace WebAPI.Authorization
             return _fallbackPolicyProvider.GetDefaultPolicyAsync();
         }
 
-        public Task<AuthorizationPolicy> GetFallbackPolicyAsync()
+        public async Task<AuthorizationPolicy> GetFallbackPolicyAsync()
         {
-            return _fallbackPolicyProvider.GetFallbackPolicyAsync();
+            return await _fallbackPolicyProvider.GetFallbackPolicyAsync();
         }
     }
 }

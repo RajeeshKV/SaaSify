@@ -34,7 +34,7 @@ public class BrevoEmailService : IEmailService
         _logger = logger;
         _apiKey = configuration["Brevo:ApiKey"] ?? throw new ArgumentNullException("Brevo:ApiKey");
         _baseUrl = configuration["Brevo:BaseUrl"] ?? "https://api.brevo.com/v3";
-        _frontendUrl = configuration["Frontend:Url"] ?? "http://localhost:3000";
+        _frontendUrl = configuration["Frontend:Url"] ?? "https://saasify.rajeesh.online";
         
         // Get template IDs from configuration
         _emailVerificationTemplateId = int.Parse(configuration["Brevo:Templates:EmailVerification"] ?? throw new ArgumentNullException("Brevo:Templates:EmailVerification"));
@@ -46,7 +46,7 @@ public class BrevoEmailService : IEmailService
         _httpClient.DefaultRequestHeaders.Add("api-key", _apiKey);
         
         // Test API key on startup
-        _ = Task.Run(TestApiKeyAsync);
+        Task.Run(async () => await TestApiKeyAsync());
     }
 
     private async Task TestApiKeyAsync()

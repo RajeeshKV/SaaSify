@@ -14,13 +14,18 @@ public class UnitOfWork : IUnitOfWork
     public UnitOfWork(ApplicationDbContext context)
     {
         _context = context;
+        _tenantRepository = new Repository<Tenant>(_context);
+        _userRepository = new Repository<User>(_context);
+        _projectRepository = new Repository<Project>(_context);
+        _roleRepository = new Repository<Role>(_context);
+        _userRoleRepository = new Repository<UserRole>(_context);
     }
 
-    public IRepository<Tenant> Tenants => _tenantRepository ??= new Repository<Tenant>(_context);
-    public IRepository<User> Users => _userRepository ??= new Repository<User>(_context);
-    public IRepository<Project> Projects => _projectRepository ??= new Repository<Project>(_context);
-    public IRepository<Role> Roles => _roleRepository ??= new Repository<Role>(_context);
-    public IRepository<UserRole> UserRoles => _userRoleRepository ??= new Repository<UserRole>(_context);
+    public IRepository<Tenant> Tenants => _tenantRepository;
+    public IRepository<User> Users => _userRepository;
+    public IRepository<Project> Projects => _projectRepository;
+    public IRepository<Role> Roles => _roleRepository;
+    public IRepository<UserRole> UserRoles => _userRoleRepository;
 
     public async Task<int> SaveChangesAsync()
     {

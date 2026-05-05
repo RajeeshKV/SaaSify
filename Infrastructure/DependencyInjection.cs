@@ -101,7 +101,7 @@ public static class DependencyInjection
         services.AddHttpClient<IOrderServiceClient, OrderServiceClient>();
         
         // Add HTTP Client Proxy for external APIs
-        services.AddHttpClient<HttpClientProxy>();
+        services.AddScoped<HttpClientProxy>();
         services.AddHttpClient<StripeApiClient>();
         services.AddHttpClient<BrevoApiClient>();
         

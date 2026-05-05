@@ -42,9 +42,9 @@ public class TenantMiddleware
         }
 
         // Skip tenant validation for Stripe webhook callbacks
-        var isStripeCallback = context.Request.Path.StartsWithSegments("/api/stripe/success") || 
-                              context.Request.Path.StartsWithSegments("/api/stripe/cancel") ||
-                              context.Request.Path.StartsWithSegments("/api/stripe/webhook");
+        var isStripeCallback = context.Request.Path.StartsWithSegments("/api/v1/stripe/success") || 
+                              context.Request.Path.StartsWithSegments("/api/v1/stripe/cancel") ||
+                              context.Request.Path.StartsWithSegments("/api/v1/stripe/webhook");
         
         if (tenantId == 0 && !isStripeCallback)
         {
@@ -107,9 +107,9 @@ public class TenantMiddleware
     {
         return path == PathString.Empty
             || path == "/"
-            || path.StartsWithSegments("/api/auth")
+            || path.StartsWithSegments("/api/v1/auth")
             || path.StartsWithSegments("/health")
             || path.StartsWithSegments("/swagger")
-            || path.StartsWithSegments("/api/health");
+            || path.StartsWithSegments("/api/v1/health");
     }
 }

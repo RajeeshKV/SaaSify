@@ -54,6 +54,8 @@ namespace WebAPI.Controllers
                     return StatusCode(503, "Service is temporarily unavailable. Please try again later.");
                 }
 
+                var baseUrl = _configuration["BaseUrl"] ?? "http://saasifyapi.rajeesh.online";
+                
                 var command = new CreateOrderCheckoutSessionCommand
                 {
                     TenantId = tenantId,
@@ -62,7 +64,9 @@ namespace WebAPI.Controllers
                     CustomerEmail = request.CustomerEmail ?? emailClaim,
                     Currency = request.Currency,
                     OrderId = request.OrderId,
-                    Description = request.Description
+                    Description = request.Description,
+                    SuccessUrl = $"{baseUrl}/api/v1/orders/success",
+                    CancelUrl = $"{baseUrl}/api/v1/orders/cancel"
                 };
 
                 var result = await _createOrderCheckoutSessionHandler.Handle(command, default);

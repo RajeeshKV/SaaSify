@@ -21,7 +21,10 @@ namespace Application.Orders.Queries
         {
             try
             {
-                // For order success, redirect to frontend order success page
+                // TODO: Process successful payment from Stripe webhook
+                // This should update order status in OrderService and database
+                // For now, just redirect to frontend
+                
                 var frontendUrl = _configuration["Frontend:BaseUrl"] ?? "https://saasify.rajeesh.online";
                 var redirectUrl = $"{frontendUrl}/order/success?session_id={request.SessionId}&success=true";
 

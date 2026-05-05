@@ -21,7 +21,10 @@ namespace Application.Orders.Queries
         {
             try
             {
-                // For order cancel, redirect to frontend order cancel page
+                // TODO: Process cancelled payment from Stripe webhook
+                // This should update order status in OrderService and database
+                // For now, just redirect to frontend
+                
                 var frontendUrl = _configuration["Frontend:BaseUrl"] ?? "https://saasify.rajeesh.online";
                 var redirectUrl = $"{frontendUrl}/order/cancel?session_id={request.SessionId}&cancelled=true";
 

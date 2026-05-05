@@ -216,6 +216,7 @@ namespace Infrastructure.Services
             };
 
             _context.AuditLogs.Add(auditLog);
+            await _context.SaveChangesAsync();
         }
 
         public async Task<bool> HasBeenMigratedAsync(int tenantId)

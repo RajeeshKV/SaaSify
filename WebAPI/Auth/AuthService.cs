@@ -200,7 +200,7 @@ public class AuthService : IAuthService
             tokenVersion,
             permissions,
             isEmailVerified,
-            jwtSettings["SecretKey"],
+            jwtSettings["SecretKey"] ?? string.Empty,
             jwtSettings["Issuer"],
             jwtSettings["Audience"],
             GetAccessTokenExpiryMinutes());

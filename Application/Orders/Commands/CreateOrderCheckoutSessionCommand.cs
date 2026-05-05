@@ -12,6 +12,8 @@ namespace Application.Orders.Commands
         public string? Currency { get; set; }
         public int? OrderId { get; set; }
         public string? Description { get; set; }
+        public string SuccessUrl { get; set; } = string.Empty;
+        public string CancelUrl { get; set; } = string.Empty;
     }
 
     public class CreateOrderCheckoutSessionCommandHandler
@@ -36,10 +38,10 @@ namespace Application.Orders.Commands
                     TenantId = request.TenantId,
                     PlanId = "order", // Use "order" as plan identifier
                     CustomerEmail = request.CustomerEmail,
-                    Currency = request.Currency ?? "usd",
+                    Currency = request.Currency,
                     Amount = request.Amount,
-                    SuccessUrl = "", // Will be set by controller
-                    CancelUrl = ""  // Will be set by controller
+                    SuccessUrl = request.SuccessUrl,
+                    CancelUrl = request.CancelUrl
                 };
 
                 // Add metadata to checkout session

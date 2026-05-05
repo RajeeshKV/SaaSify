@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Infrastructure.Services;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/rbacmigration")]
 [Authorize]
 public class RBACMigrationController : ControllerBase
 {

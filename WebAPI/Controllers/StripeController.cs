@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/stripe")]
 public class StripeController : ControllerBase
 {
     private readonly CreateCheckoutSessionCommandHandler _createCheckoutSessionHandler;

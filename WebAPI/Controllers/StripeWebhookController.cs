@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace WebAPI.Controllers
 {
     [ApiController]
-    [Route("api/stripe/webhook")]
+    [Route("api/v1/stripe/webhook")]
     public class StripeWebhookController : ControllerBase
     {
         private readonly IStripePaymentService _stripePaymentService;

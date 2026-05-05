@@ -8,7 +8,7 @@ using Infrastructure.Services;
 namespace WebAPI.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/users")]
 [Authorize("user.manage")]
 [EnableRateLimiting("DefaultPolicy")]
 public class UsersController : ControllerBase

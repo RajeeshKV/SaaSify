@@ -9,7 +9,7 @@ using Infrastructure.Services;
 namespace WebAPI.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/emailverification")]
 public class EmailVerificationController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;

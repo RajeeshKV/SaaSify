@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Application.Common.Pagination;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/projects")]
 [Authorize]
 [EnableRateLimiting("tenant")]
 public class ProjectsController : ControllerBase

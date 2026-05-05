@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Application.Common.Interfaces;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/subscription")]
 [Authorize]
 [EnableRateLimiting("tenant")]
 public class SubscriptionController : ControllerBase

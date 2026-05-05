@@ -11,6 +11,7 @@ public class Subscription
     public decimal Amount { get; set; }
     public string Currency { get; set; } = "USD";
     public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 
     public Tenant Tenant { get; set; }
 }

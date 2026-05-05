@@ -173,10 +173,10 @@ public class BrevoEmailService : IEmailService
             var json = JsonSerializer.Serialize(emailData);
             var emailObj = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
             
-            if (emailObj.ContainsKey("to") && emailObj.ContainsKey("params"))
+            if (emailObj?.ContainsKey("to") == true && emailObj?.ContainsKey("params") == true)
             {
                 var toArray = JsonSerializer.Deserialize<Dictionary<string, string>[]>(emailObj["to"].ToString());
-                var recipientEmail = toArray[0]["email"];
+                var recipientEmail = toArray?[0]?["email"] ?? string.Empty;
                 
                 var paramsObj = JsonSerializer.Deserialize<Dictionary<string, string>>(emailObj["params"].ToString());
                 var userName = paramsObj.GetValueOrDefault("userName", "User");

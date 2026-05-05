@@ -127,7 +127,7 @@ public class UsersController : ControllerBase
         try
         {
             var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
-            await _emailService.SendPasswordSetEmailAsync(user.Email, user.EmailVerificationToken, user.Name, tenant?.Name);
+            await _emailService.SendPasswordSetEmailAsync(user.Email, user.EmailVerificationToken, user.Name, tenant?.Name ?? string.Empty);
             _logger.LogInformation("Password set email sent to {Email}", user.Email);
         }
         catch (Exception ex)

@@ -107,13 +107,16 @@ namespace Infrastructure.Services
                 switch (stripeEvent.Type)
                 {
                     case Events.CheckoutSessionCompleted:
-                        await HandleCheckoutSessionCompleted(stripeEvent.Data.Object as Session);
+                        if (stripeEvent.Data.Object is Session session)
+                            await HandleCheckoutSessionCompleted(session);
                         break;
                     case Events.InvoicePaymentSucceeded:
-                        await HandleInvoicePaymentSucceeded(stripeEvent.Data.Object as Invoice);
+                        if (stripeEvent.Data.Object is Invoice invoice)
+                            await HandleInvoicePaymentSucceeded(invoice);
                         break;
                     case Events.CustomerSubscriptionDeleted:
-                        await HandleSubscriptionDeleted(stripeEvent.Data.Object as Stripe.Subscription);
+                        if (stripeEvent.Data.Object is Stripe.Subscription subscription)
+                            await HandleSubscriptionDeleted(subscription);
                         break;
                 }
             }
@@ -167,6 +170,7 @@ namespace Infrastructure.Services
         {
             // Handle recurring subscription payments
             // This would extend the subscription end date
+            await Task.CompletedTask;
         }
 
         private async Task HandleSubscriptionDeleted(Stripe.Subscription subscription)

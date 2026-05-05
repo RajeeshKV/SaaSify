@@ -5,6 +5,7 @@ public interface ISubscriptionService
     Task<SubscriptionDto?> GetCurrentSubscriptionAsync(int tenantId);
     Task<List<PlanDto>> GetAvailablePlansAsync();
     Task<SubscriptionDto> UpgradePlanAsync(int tenantId, string newPlan);
+    Task<SubscriptionDto> DegradePlanAsync(int tenantId, string newPlan);
     Task<SubscriptionDto> CreateSubscriptionAsync(int tenantId, string plan, decimal amount);
     Task<bool> CancelSubscriptionAsync(int tenantId);
     Task<List<SubscriptionDto>> GetSubscriptionHistoryAsync(int tenantId);

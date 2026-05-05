@@ -86,18 +86,19 @@ public class SubscriptionService : ISubscriptionService
         if (plan == null)
             throw new ArgumentException($"Invalid plan: {newPlan}");
 
-        // Deactivate current subscription if exists
-        var currentSubscription = await _context.Subscriptions
+        // Deactivate ALL current subscriptions for this tenant
+        var currentSubscriptions = await _context.Subscriptions
             .Where(s => s.TenantId == tenantId && s.IsActive)
-            .FirstOrDefaultAsync();
+            .ToListAsync();
 
-        if (currentSubscription != null)
+        foreach (var sub in currentSubscriptions)
         {
-            currentSubscription.IsActive = false;
+            sub.IsActive = false;
+            sub.UpdatedAt = DateTime.UtcNow;
         }
 
         // Calculate subscription dates with Indian time zone
-        var (startDate, endDate) = CalculateSubscriptionDates(currentSubscription?.EndDate);
+        var (startDate, endDate) = CalculateSubscriptionDates(currentSubscriptions.FirstOrDefault()?.EndDate);
         
         // Create new subscription
         var subscription = new Subscription
@@ -109,7 +110,8 @@ public class SubscriptionService : ISubscriptionService
             IsActive = true,
             Amount = plan.MonthlyPrice,
             Currency = "USD",
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
         _context.Subscriptions.Add(subscription);
@@ -119,7 +121,11 @@ public class SubscriptionService : ISubscriptionService
         if (tenant != null)
         {
             tenant.Plan = newPlan;
+            tenant.UpdatedAt = DateTime.UtcNow;
         }
+
+        // Update tenant settings based on new plan
+        await UpdateTenantSettingsForPlanAsync(tenantId, newPlan);
 
         await _unitOfWork.SaveChangesAsync();
 
@@ -133,6 +139,127 @@ public class SubscriptionService : ISubscriptionService
             subscription.Currency,
             subscription.CreatedAt
         );
+    }
+
+    public async Task<SubscriptionDto> DegradePlanAsync(int tenantId, string newPlan)
+    {
+        var availablePlans = await GetAvailablePlansAsync();
+        var plan = availablePlans.FirstOrDefault(p => p.Name == newPlan);
+        
+        if (plan == null)
+            throw new ArgumentException($"Invalid plan: {newPlan}");
+
+        // Deactivate ALL current subscriptions for this tenant
+        var currentSubscriptions = await _context.Subscriptions
+            .Where(s => s.TenantId == tenantId && s.IsActive)
+            .ToListAsync();
+
+        foreach (var sub in currentSubscriptions)
+        {
+            sub.IsActive = false;
+            sub.UpdatedAt = DateTime.UtcNow;
+        }
+
+        // Calculate subscription dates with Indian time zone
+        var (startDate, endDate) = CalculateSubscriptionDates(currentSubscriptions.FirstOrDefault()?.EndDate);
+        
+        // Create new subscription without payment (degrade)
+        var subscription = new Subscription
+        {
+            TenantId = tenantId,
+            Plan = newPlan,
+            StartDate = startDate,
+            EndDate = endDate,
+            IsActive = true,
+            Amount = 0, // No charge for downgrade
+            Currency = "USD",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _context.Subscriptions.Add(subscription);
+
+        // Update tenant plan
+        var tenant = await _context.Tenants.FindAsync(tenantId);
+        if (tenant != null)
+        {
+            tenant.Plan = newPlan;
+            tenant.UpdatedAt = DateTime.UtcNow;
+        }
+
+        // Update tenant settings based on new plan
+        await UpdateTenantSettingsForPlanAsync(tenantId, newPlan);
+
+        await _unitOfWork.SaveChangesAsync();
+
+        return new SubscriptionDto(
+            subscription.Id,
+            subscription.Plan,
+            subscription.StartDate,
+            subscription.EndDate,
+            subscription.IsActive,
+            subscription.Amount,
+            subscription.Currency,
+            subscription.CreatedAt
+        );
+    }
+
+    private async Task UpdateTenantSettingsForPlanAsync(int tenantId, string plan)
+    {
+        var existingSettings = await _context.TenantSettings
+            .FirstOrDefaultAsync(ts => ts.TenantId == tenantId);
+
+        if (existingSettings == null)
+        {
+            existingSettings = new TenantSettings
+            {
+                TenantId = tenantId,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.TenantSettings.Add(existingSettings);
+        }
+
+        // Update settings based on plan
+        switch (plan.ToLower())
+        {
+            case "free":
+                existingSettings.MaxProjects = 5;
+                existingSettings.MaxUsers = 3;
+                existingSettings.EnableAdvancedFeatures = false;
+                existingSettings.EnableApiAccess = false;
+                existingSettings.EnableExport = false;
+                existingSettings.EnableIntegrations = false;
+                existingSettings.MaxStorageMB = 100;
+                existingSettings.MaxApiCallsPerDay = 100;
+                break;
+                
+            case "professional":
+                existingSettings.MaxProjects = 50;
+                existingSettings.MaxUsers = 10;
+                existingSettings.EnableAdvancedFeatures = true;
+                existingSettings.EnableApiAccess = true;
+                existingSettings.EnableExport = true;
+                existingSettings.EnableIntegrations = false;
+                existingSettings.MaxStorageMB = 1000;
+                existingSettings.MaxApiCallsPerDay = 1000;
+                break;
+                
+            case "enterprise":
+                existingSettings.MaxProjects = -1; // Unlimited
+                existingSettings.MaxUsers = 50;
+                existingSettings.EnableAdvancedFeatures = true;
+                existingSettings.EnableApiAccess = true;
+                existingSettings.EnableExport = true;
+                existingSettings.EnableIntegrations = true;
+                existingSettings.MaxStorageMB = 10000;
+                existingSettings.MaxApiCallsPerDay = 5000;
+                break;
+                
+            default:
+                throw new ArgumentException($"Unknown plan: {plan}");
+        }
+
+        existingSettings.UpdatedAt = DateTime.UtcNow;
     }
 
     public async Task<SubscriptionDto> CreateSubscriptionAsync(int tenantId, string plan, decimal amount)

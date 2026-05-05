@@ -53,6 +53,20 @@ public class SubscriptionController : ControllerBase
         }
     }
 
+    [HttpPost("degrade")]
+    public async Task<ActionResult<SubscriptionDto>> DegradePlan([FromBody] UpgradePlanRequest request)
+    {
+        try
+        {
+            var subscription = await _subscriptionService.DegradePlanAsync(_tenantContext.TenantId, request.NewPlan);
+            return Ok(subscription);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpGet("history")]
     public async Task<ActionResult<List<SubscriptionDto>>> GetSubscriptionHistory()
     {

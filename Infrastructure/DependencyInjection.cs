@@ -6,6 +6,8 @@ using Application.Common.Interfaces;
 using Application.Common.Configuration;
 using Application.Stripe.Commands;
 using Application.Stripe.Queries;
+using Application.Orders.Commands;
+using Application.Orders.Queries;
 using Infrastructure.Interceptors;
 using Infrastructure.Services;
 
@@ -43,6 +45,11 @@ public static class DependencyInjection
         services.AddScoped<ProcessStripeWebhookCommandHandler>();
         services.AddScoped<HandleStripeSuccessQueryHandler>();
         services.AddScoped<HandleStripeCancelQueryHandler>();
+        
+        // Order command and query handlers
+        services.AddScoped<CreateOrderCheckoutSessionCommandHandler>();
+        services.AddScoped<HandleOrderSuccessQueryHandler>();
+        services.AddScoped<HandleOrderCancelQueryHandler>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<ICacheService, InMemoryCacheService>();

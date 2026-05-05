@@ -50,7 +50,8 @@ namespace WebAPI.Controllers
                     Amount = request.Amount,
                     CustomerEmail = request.CustomerEmail ?? emailClaim,
                     Currency = request.Currency,
-                    OrderId = request.OrderId
+                    OrderId = request.OrderId,
+                    Description = request.Description
                 };
 
                 var result = await _createOrderCheckoutSessionHandler.Handle(command, default);
@@ -129,7 +130,8 @@ namespace WebAPI.Controllers
         decimal Amount,
         string? CustomerEmail,
         string? Currency,
-        int? OrderId
+        int? OrderId,
+        string? Description
     );
 
     public record CreatePaymentIntentRequest(

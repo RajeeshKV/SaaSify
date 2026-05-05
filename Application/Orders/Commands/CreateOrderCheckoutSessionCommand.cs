@@ -11,6 +11,7 @@ namespace Application.Orders.Commands
         public string? CustomerEmail { get; set; }
         public string? Currency { get; set; }
         public int? OrderId { get; set; }
+        public string? Description { get; set; }
     }
 
     public class CreateOrderCheckoutSessionCommandHandler

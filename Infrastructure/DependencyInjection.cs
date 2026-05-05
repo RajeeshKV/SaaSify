@@ -50,6 +50,11 @@ public static class DependencyInjection
         services.AddScoped<CreateOrderCheckoutSessionCommandHandler>();
         services.AddScoped<HandleOrderSuccessQueryHandler>();
         services.AddScoped<HandleOrderCancelQueryHandler>();
+        
+        // Order command and query handlers
+        services.AddScoped<CreateOrderCheckoutSessionCommandHandler>();
+        services.AddScoped<HandleOrderSuccessQueryHandler>();
+        services.AddScoped<HandleOrderCancelQueryHandler>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<ICacheService, InMemoryCacheService>();

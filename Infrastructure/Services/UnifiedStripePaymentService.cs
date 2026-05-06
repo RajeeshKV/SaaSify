@@ -334,7 +334,7 @@ namespace Infrastructure.Services
                 if (createdOrder != null)
                 {
                     _logger.LogInformation("Order created successfully: OrderId={OrderId}, TenantId={TenantId}, Amount={Amount}, SessionId={SessionId}", 
-                        createdOrder.Id, tenantId, session.AmountTotal / 100, session.Id);
+                        createdOrder.OrderId, tenantId, session.AmountTotal / 100, session.Id);
                 }
                 else
                 {

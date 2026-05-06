@@ -2,6 +2,7 @@ using Application.Common.Interfaces;
 using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
 using Stripe;
+using Stripe.Checkout;
 
 namespace Application.Orders.Queries
 {
@@ -24,7 +25,7 @@ namespace Application.Orders.Queries
             try
             {
                 // Retrieve order details from Stripe session
-                var sessionService = new Stripe.Checkout.SessionService();
+                var sessionService = new SessionService();
                 var session = await sessionService.GetAsync(request.SessionId);
 
                 if (session == null)

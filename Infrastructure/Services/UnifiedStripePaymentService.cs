@@ -309,24 +309,37 @@ namespace Infrastructure.Services
                     return;
                 }
 
-                var orderRequest = new
+                var orderMetadata = new Dictionary<string, string>
                 {
-                    Amount = (decimal)session.AmountTotal / 100, // Convert from cents
-                    Currency = session.Currency.ToUpper(),
-                    Description = $"Payment for order {orderId}",
-                    CustomerEmail = session.CustomerDetails?.Email,
-                    Metadata = new Dictionary<string, string>
-                    {
-                        {"stripe_session_id", session.Id},
-                        {"payment_status", session.PaymentStatus},
-                        {"paid_at", DateTime.UtcNow.ToString("O")}
-                    }
+                    {"stripe_session_id", session.Id},
+                    {"payment_status", session.PaymentStatus},
+                    {"paid_at", DateTime.UtcNow.ToString("O")}
                 };
 
-                // This would require OrderService to have a create order endpoint
-                // For now, we'll log the successful payment
-                _logger.LogInformation("Order payment processed successfully: TenantId={TenantId}, Amount={Amount}, SessionId={SessionId}", 
-                    tenantId, session.AmountTotal / 100, session.Id);
+                if (!string.IsNullOrEmpty(orderId))
+                {
+                    orderMetadata["order_id"] = orderId;
+                }
+
+                var createdOrder = await _orderServiceClient.CreateOrderAsync(
+                    tenantId: tenantId,
+                    amount: (decimal)session.AmountTotal / 100, // Convert from cents
+                    currency: session.Currency.ToUpper(),
+                    description: $"Payment for order {orderId ?? "unknown"}",
+                    customerEmail: session.CustomerDetails?.Email ?? $"tenant-{tenantId}@saasify.com",
+                    metadata: orderMetadata,
+                    accessToken: accessToken
+                );
+
+                if (createdOrder != null)
+                {
+                    _logger.LogInformation("Order created successfully: OrderId={OrderId}, TenantId={TenantId}, Amount={Amount}, SessionId={SessionId}", 
+                        createdOrder.Id, tenantId, session.AmountTotal / 100, session.Id);
+                }
+                else
+                {
+                    _logger.LogError("Failed to create order in OrderService for tenant {TenantId}", tenantId);
+                }
             }
             catch (Exception ex)
             {
@@ -338,15 +351,42 @@ namespace Infrastructure.Services
 
         private async Task<string> GetAccessTokenForTenant(int tenantId)
         {
-            // TODO: Implement proper token generation for OrderService calls
-            // For now, return empty string to indicate no token available
-            // In a real implementation, you would:
-            // 1. Generate a service-to-service token
-            // 2. Include tenant context
-            // 3. Return the token for OrderService API calls
-            
-            _logger.LogWarning("GetAccessTokenForTenant not implemented for tenant {TenantId}", tenantId);
-            return string.Empty;
+            try
+            {
+                // Generate a service-to-service JWT token for OrderService calls
+                // This token should include tenant context and proper claims
+                
+                var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+                var key = System.Text.Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"] ?? "default-secret-key-change-in-production");
+                
+                var tokenDescriptor = new Microsoft.IdentityModel.Tokens.SecurityTokenDescriptor
+                {
+                    Subject = new System.Security.Claims.ClaimsIdentity(new[]
+                    {
+                        new System.Security.Claims.Claim("TenantId", tenantId.ToString()),
+                        new System.Security.Claims.Claim("scope", "order-service"),
+                        new System.Security.Claims.Claim("role", "system"),
+                        new System.Security.Claims.Claim("service", "payment-service")
+                    }),
+                    Expires = DateTime.UtcNow.AddHours(1), // Short-lived token
+                    Issuer = _configuration["Jwt:Issuer"] ?? "SaaSify",
+                    Audience = _configuration["Jwt:Audience"] ?? "OrderService",
+                    SigningCredentials = new Microsoft.IdentityModel.Tokens.SigningCredentials(
+                        new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(key),
+                        Microsoft.IdentityModel.Tokens.SecurityAlgorithms.HmacSha256Signature)
+                };
+
+                var token = tokenHandler.CreateToken(tokenDescriptor);
+                var tokenString = tokenHandler.WriteToken(token);
+                
+                _logger.LogInformation("Generated service token for tenant {TenantId}", tenantId);
+                return tokenString;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to generate access token for tenant {TenantId}", tenantId);
+                return string.Empty;
+            }
         }
 
         private async Task HandlePaymentIntentSucceeded(PaymentIntent paymentIntent)

@@ -10,6 +10,7 @@ namespace Infrastructure.Services
     {
         Task<PaginatedOrdersResponse> GetOrdersAsync(int tenantId, int page, int pageSize, string accessToken);
         Task<OrderDto?> GetOrderAsync(int tenantId, int orderId, string accessToken);
+        Task<OrderDto?> CreateOrderAsync(int tenantId, decimal amount, string currency, string description, string customerEmail, Dictionary<string, string> metadata, string accessToken);
         Task<bool> IsHealthyAsync();
     }
 
@@ -121,6 +122,57 @@ namespace Infrastructure.Services
             {
                 HandleFailure();
                 _logger.LogError(ex, "Error getting order {OrderId} from OrderService for TenantId: {TenantId}", orderId, tenantId);
+                throw;
+            }
+        }
+
+        public async Task<OrderDto?> CreateOrderAsync(int tenantId, decimal amount, string currency, string description, string customerEmail, Dictionary<string, string> metadata, string accessToken)
+        {
+            if (IsCircuitBreakerOpen())
+            {
+                throw new InvalidOperationException("OrderService is temporarily unavailable. Please try again later.");
+            }
+
+            try
+            {
+                var orderRequest = new
+                {
+                    Amount = amount,
+                    Currency = currency,
+                    Description = description,
+                    CustomerEmail = customerEmail,
+                    Metadata = metadata
+                };
+
+                var json = JsonSerializer.Serialize(orderRequest, _jsonOptions);
+                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                
+                var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/orders")
+                {
+                    Content = content
+                };
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                
+                var response = await _httpClient.SendAsync(request);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    ResetCircuitBreaker();
+                    
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    return JsonSerializer.Deserialize<OrderDto>(responseContent, _jsonOptions);
+                }
+                else
+                {
+                    HandleFailure(response);
+                    _logger.LogError("Failed to create order: {StatusCode}", response.StatusCode);
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                HandleFailure();
+                _logger.LogError(ex, "Error creating order in OrderService for TenantId: {TenantId}", tenantId);
                 throw;
             }
         }

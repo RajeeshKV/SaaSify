@@ -10,7 +10,6 @@ namespace WebAPI.Controllers
 {
     [ApiController]
     [Route("api/v1/orders")]
-    [Authorize]
     public class OrdersController : ControllerBase
     {
         private readonly CreateOrderCheckoutSessionCommandHandler _createOrderCheckoutSessionHandler;
@@ -34,6 +33,7 @@ namespace WebAPI.Controllers
         }
 
         [HttpPost("checkout")]
+        [Authorize]
         public async Task<IActionResult> CreateCheckoutSession([FromBody] CreateOrderCheckoutSessionRequest request)
         {
             try

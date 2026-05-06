@@ -65,8 +65,8 @@ namespace WebAPI.Controllers
                     Currency = request.Currency,
                     OrderId = request.OrderId,
                     Description = request.Description,
-                    SuccessUrl = $"{baseUrl}/api/v1/orders/success",
-                    CancelUrl = $"{baseUrl}/api/v1/orders/cancel"
+                    SuccessUrl = $"{baseUrl}/api/v1/orders/success?session_id={{CHECKOUT_SESSION_ID}}",
+                    CancelUrl = $"{baseUrl}/api/v1/orders/cancel?session_id={{CHECKOUT_SESSION_ID}}"
                 };
 
                 var result = await _createOrderCheckoutSessionHandler.Handle(command, default);

@@ -58,7 +58,7 @@ namespace Infrastructure.Services
                 },
                 Mode = "payment",
                 SuccessUrl = $"{GetBaseUrl()}/api/v1/subscription/success?session_id={{CHECKOUT_SESSION_ID}}",
-                CancelUrl = $"{GetBaseUrl()}/api/v1/subscription/cancel",
+                CancelUrl = $"{GetBaseUrl()}/api/v1/subscription/cancel?session_id={{CHECKOUT_SESSION_ID}}",
                 Metadata = new Dictionary<string, string>
                 {
                     { "tenant_id", tenantId.ToString() },

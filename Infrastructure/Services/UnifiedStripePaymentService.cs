@@ -321,6 +321,18 @@ namespace Infrastructure.Services
                     orderMetadata["order_id"] = orderId;
                 }
 
+                // Debug JWT token generation
+                _logger.LogInformation("=== JWT TOKEN DEBUG ===");
+                _logger.LogInformation("JWT Issuer: {Issuer}", _configuration["Jwt:Issuer"] ?? "SaaSify");
+                _logger.LogInformation("JWT Audience: {Audience}", _configuration["Jwt:Audience"] ?? "OrderService");
+                _logger.LogInformation("JWT Secret Key Length: {SecretKeyLength}", (_configuration["Jwt:SecretKey"] ?? "default-secret-key-change-in-production").Length);
+                _logger.LogInformation("Full JWT Token: {Token}", accessToken);
+                _logger.LogInformation("Token Expires: {Expires}", DateTime.UtcNow.AddHours(1));
+                _logger.LogInformation("=== END JWT DEBUG ===");
+
+                // Test OrderService JWT configuration before making the actual call
+                await TestOrderServiceJwtConfigurationAsync(accessToken);
+
                 _logger.LogInformation("Attempting to create order in OrderService with token: {TokenPrefix}...", accessToken.Substring(0, Math.Min(50, accessToken.Length)));
 
                 var createdOrder = await _orderServiceClient.CreateOrderAsync(
@@ -352,6 +364,48 @@ namespace Infrastructure.Services
                 
                 // Refund the payment since order creation failed
                 await RefundPaymentAsync(session, "Order creation failed due to system error - automatic refund");
+            }
+        }
+
+        private string ValidateJwtToken(string tokenString)
+        {
+            try
+            {
+                var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+                var key = System.Text.Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"] ?? "default-secret-key-change-in-production");
+                
+                var validationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = _configuration["Jwt:Issuer"] ?? "SaaSify",
+                    ValidateAudience = true,
+                    ValidAudience = _configuration["Jwt:Audience"] ?? "OrderService",
+                    ValidateLifetime = true,
+                    IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(key),
+                    ClockSkew = TimeSpan.Zero
+                };
+
+                try
+                {
+                    tokenHandler.ValidateToken(tokenString, validationParameters, out var validatedToken);
+                    var jwtToken = tokenHandler.ReadJwtToken(tokenString);
+                    
+                    var claims = new List<string>();
+                    foreach (var claim in jwtToken.Claims)
+                    {
+                        claims.Add($"{claim.Type}: {claim.Value}");
+                    }
+                    
+                    return $"VALID - Claims: [{string.Join(", ", claims)}]";
+                }
+                catch (Microsoft.IdentityModel.Tokens.SecurityTokenValidationException ex)
+                {
+                    return $"INVALID - {ex.Message}";
+                }
+            }
+            catch (Exception ex)
+            {
+                return $"ERROR - {ex.Message}";
             }
         }
 
@@ -428,6 +482,10 @@ namespace Infrastructure.Services
 
                 var token = tokenHandler.CreateToken(tokenDescriptor);
                 var tokenString = tokenHandler.WriteToken(token);
+                
+                // Validate JWT token before returning
+                var validationResult = ValidateJwtToken(tokenString);
+                _logger.LogInformation("JWT Token Validation Result: {ValidationResult}", validationResult);
                 
                 _logger.LogInformation("Generated service token for tenant {TenantId}, expires {Expires}", tenantId, tokenDescriptor.Expires);
                 return tokenString;
@@ -554,6 +612,80 @@ namespace Infrastructure.Services
         private string GetBaseUrl()
         {
             return _configuration["Stripe:BaseUrl"] ?? "https://saasifyapi.rajeesh.online";
+        }
+
+        private async Task TestOrderServiceJwtConfigurationAsync(string accessToken)
+        {
+            try
+            {
+                _logger.LogInformation("=== TESTING ORDERSERVICE JWT CONFIGURATION ===");
+                
+                // Test 1: Check OrderService health
+                var isHealthy = await _orderServiceClient.IsHealthyAsync();
+                _logger.LogInformation("OrderService Health Check: {IsHealthy}", isHealthy);
+                
+                if (!isHealthy)
+                {
+                    _logger.LogError("OrderService is not healthy - cannot test JWT");
+                    return;
+                }
+
+                // Test 2: Try to get orders with our JWT token
+                try
+                {
+                    var orders = await _orderServiceClient.GetOrdersAsync(
+                        tenantId: 1, // Test tenant
+                        page: 1,
+                        pageSize: 1,
+                        accessToken: accessToken
+                    );
+                    
+                    _logger.LogInformation("OrderService JWT Test: SUCCESS - Orders retrieved");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "OrderService JWT Test: FAILED - {Error}", ex.Message);
+                    
+                    // Test 3: Try with different audience values
+                    await TestDifferentAudienceValuesAsync();
+                }
+                
+                _logger.LogInformation("=== END ORDERSERVICE JWT TEST ===");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to test OrderService JWT configuration");
+            }
+        }
+
+        private async Task TestDifferentAudienceValuesAsync()
+        {
+            var testAudiences = new[] { "SaaSify", "OrderService", "saasify", "orderservice" };
+            var testIssuer = _configuration["Jwt:Issuer"] ?? "SaaSify";
+            
+            foreach (var audience in testAudiences)
+            {
+                try
+                {
+                    _logger.LogInformation("Testing with Audience: {Audience}, Issuer: {Issuer}", audience, testIssuer);
+                    
+                    var testToken = await GetAccessTokenForTenant(1);
+                    
+                    var orders = await _orderServiceClient.GetOrdersAsync(
+                        tenantId: 1,
+                        page: 1,
+                        pageSize: 1,
+                        accessToken: testToken
+                    );
+                    
+                    _logger.LogInformation("✅ Audience {Audience} WORKED", audience);
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("❌ Audience {Audience} FAILED: {Error}", audience, ex.Message);
+                }
+            }
         }
     }
 }

@@ -321,6 +321,8 @@ namespace Infrastructure.Services
                     orderMetadata["order_id"] = orderId;
                 }
 
+                _logger.LogInformation("Attempting to create order in OrderService with token: {TokenPrefix}...", accessToken.Substring(0, Math.Min(50, accessToken.Length)));
+
                 var createdOrder = await _orderServiceClient.CreateOrderAsync(
                     tenantId: tenantId,
                     amount: (decimal)session.AmountTotal / 100, // Convert from cents
@@ -338,14 +340,57 @@ namespace Infrastructure.Services
                 }
                 else
                 {
-                    _logger.LogError("Failed to create order in OrderService for tenant {TenantId}", tenantId);
+                    _logger.LogError("Failed to create order in OrderService for tenant {TenantId}. Payment was successful but order creation failed - INITIATING REFUND", tenantId);
+                    
+                    // Refund the payment since order creation failed
+                    await RefundPaymentAsync(session, "Order creation failed - automatic refund");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create order in OrderService for tenant {TenantId}", tenantId);
-                // Payment was successful but order creation failed - this needs manual intervention
-                // Consider implementing refund logic here
+                _logger.LogError(ex, "Failed to create order in OrderService for tenant {TenantId}. Payment was successful but order creation failed - INITIATING REFUND", tenantId);
+                
+                // Refund the payment since order creation failed
+                await RefundPaymentAsync(session, "Order creation failed due to system error - automatic refund");
+            }
+        }
+
+        private async Task RefundPaymentAsync(Session session, string reason)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(session.PaymentIntentId))
+                {
+                    _logger.LogWarning("Cannot refund: No PaymentIntentId found for session {SessionId}", session.Id);
+                    return;
+                }
+
+                var refundOptions = new RefundCreateOptions
+                {
+                    PaymentIntent = session.PaymentIntentId,
+                    Reason = RefundReasons.RequestedByCustomer,
+                    Metadata = new Dictionary<string, string>
+                    {
+                        {"original_session_id", session.Id},
+                        {"refund_reason", reason},
+                        {"tenant_id", session.Metadata?.GetValueOrDefault("tenant_id") ?? "unknown"},
+                        {"automatic_refund", "true"}
+                    }
+                };
+
+                var refundService = new RefundService();
+                var refund = await refundService.CreateAsync(refundOptions);
+
+                _logger.LogWarning("Payment refunded automatically: RefundId={RefundId}, Amount={Amount}, Reason={Reason}, SessionId={SessionId}", 
+                    refund.Id, refund.Amount / 100.0m, reason, session.Id);
+
+                // TODO: Send email notification to customer about automatic refund
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to refund payment for session {SessionId}. MANUAL REFUND REQUIRED", session.Id);
+                // This is critical - payment succeeded but refund failed
+                // Manual intervention required to refund the customer
             }
         }
 
@@ -359,16 +404,21 @@ namespace Infrastructure.Services
                 var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
                 var key = System.Text.Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"] ?? "default-secret-key-change-in-production");
                 
+                var now = DateTime.UtcNow;
                 var tokenDescriptor = new Microsoft.IdentityModel.Tokens.SecurityTokenDescriptor
                 {
                     Subject = new System.Security.Claims.ClaimsIdentity(new[]
                     {
+                        new System.Security.Claims.Claim("sub", $"service-{tenantId}"),
                         new System.Security.Claims.Claim("TenantId", tenantId.ToString()),
                         new System.Security.Claims.Claim("scope", "order-service"),
                         new System.Security.Claims.Claim("role", "system"),
-                        new System.Security.Claims.Claim("service", "payment-service")
+                        new System.Security.Claims.Claim("service", "payment-service"),
+                        new System.Security.Claims.Claim("iat", ((int)(now - DateTime.UnixEpoch).TotalSeconds).ToString(), System.Security.Claims.ClaimValueTypes.Integer64)
                     }),
-                    Expires = DateTime.UtcNow.AddHours(1), // Short-lived token
+                    Expires = now.AddHours(1), // Short-lived token
+                    IssuedAt = now,
+                    NotBefore = now,
                     Issuer = _configuration["Jwt:Issuer"] ?? "SaaSify",
                     Audience = _configuration["Jwt:Audience"] ?? "OrderService",
                     SigningCredentials = new Microsoft.IdentityModel.Tokens.SigningCredentials(
@@ -379,7 +429,7 @@ namespace Infrastructure.Services
                 var token = tokenHandler.CreateToken(tokenDescriptor);
                 var tokenString = tokenHandler.WriteToken(token);
                 
-                _logger.LogInformation("Generated service token for tenant {TenantId}", tenantId);
+                _logger.LogInformation("Generated service token for tenant {TenantId}, expires {Expires}", tenantId, tokenDescriptor.Expires);
                 return tokenString;
             }
             catch (Exception ex)
